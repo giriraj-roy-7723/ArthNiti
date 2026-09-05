@@ -7,7 +7,8 @@ from src.routes import (
     logistics,
     advisory,
     report,
-    report_translation
+    report_translation,
+    business_profile
 )
 from src.config.database import engine, Base
 from contextlib import asynccontextmanager
@@ -59,6 +60,12 @@ app.include_router(
     report_translation.router,
     prefix="/api/v1/translation",
     tags=["Report Translation"],
+)
+
+app.include_router(
+    business_profile.router,
+    prefix="/api/v1/business_profile",
+    tags=["Business profile generator"],
 )
 
 
