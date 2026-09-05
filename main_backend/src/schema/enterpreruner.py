@@ -7,7 +7,7 @@ from src.config.database import Base
 
 
 class Enterpreneur(Base):
-    __tablename__ = "Enterpreneurs"
+    __tablename__ = "enterpreneurs"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
 
     user_id = Column(

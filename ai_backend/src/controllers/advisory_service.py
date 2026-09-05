@@ -20,7 +20,7 @@ from src.utils.geo_utils import (
 )
 from src.utils.data_utils import safe_float, normalize_index
 
-from src.services.supply_chain_service import (
+from src.controllers.supply_chain_service import (
     get_supply_chain_profile,
     calculate_score,
 )

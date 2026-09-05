@@ -8,12 +8,13 @@ from src.config.database import Base
 
 
 class BusinessStatus(str, enum.Enum):
+    pending="pending"
     active = "active"
     closed = "closed"
 
 
 class Business(Base):
-    __tablename__ = "Businesses"
+    __tablename__ = "businesses"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
 
@@ -40,7 +41,7 @@ class Business(Base):
 
     status = Column(
         Enum(BusinessStatus),
-        default=BusinessStatus.planning,
+        default=BusinessStatus.pending,
         nullable=False,
     )
 

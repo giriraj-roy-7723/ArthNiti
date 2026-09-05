@@ -7,12 +7,28 @@ from src.routes import (
     logistics,
     advisory,
     report,
+    report_translation
 )
+from src.config.database import engine, Base
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Tables before create:", Base.metadata.tables.keys())
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    print("Tables after create:", Base.metadata.tables.keys())
+
+    yield
+
 
 app = FastAPI(
     title="Rural Business Intelligence API",
     description="FastAPI backend for hyper-local micro-enterprise feasibility analysis.",
     version="1.0.0",
+    lifespan=lifespan,  # MUST be here
 )
 
 # Individual Module Routes
@@ -37,6 +53,12 @@ app.include_router(
 # The Master Orchestrator Route
 app.include_router(
     report.router, prefix="/api/v1/report", tags=["Master Report Generation"]
+)
+
+app.include_router(
+    report_translation.router,
+    prefix="/api/v1/translation",
+    tags=["Report Translation"],
 )
 
 

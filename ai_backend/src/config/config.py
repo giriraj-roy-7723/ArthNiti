@@ -3,6 +3,8 @@ import requests
 
 # App Settings
 GEMINI_MODEL_NAME = "gemini-3.5-flash-lite"
+
+
 DATA_MAX_AGE_DAYS = 30
 HEADERS = {
     "User-Agent": "FastAPI-Backend/1.0",

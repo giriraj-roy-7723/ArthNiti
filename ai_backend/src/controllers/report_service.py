@@ -14,7 +14,8 @@ from src.controllers.supply_chain_service import evaluate_supply_chain
 from src.controllers.logistics_service import (
     run_supply_chain_and_transportation_analysis,
 )
-from src.services.advisory_service import generate_dynamic_advisory_report
+from src.controllers.advisory_service import generate_dynamic_advisory_report
+from src.controllers.translator_service import translate_feasibility_report
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,22 @@ def extract_state(location: str) -> str:
     if len(parts) >= 1:
         return parts[-1]
     return location
+
+
+def build_analysis_location(
+    country: str,
+    state: str,
+    district: str,
+    city: str | None,
+) -> str:
+    parts = [
+        country,
+        state,
+        district,
+        city,
+    ]
+
+    return ", ".join(part.strip() for part in parts if part and part.strip())
 
 
 # ============================================================
@@ -171,31 +188,57 @@ OUTPUT FORMAT (Strictly use this markdown structure)
 # ORCHESTRATOR
 # ============================================================
 def generate_feasibility_report(
-    location: str,
+    business_name: str,
     business_type: str,
+    business_description: str | None,
+    country: str,
+    state: str,
+    district: str,
+    city: str | None,
+    village: str | None,
+    pincode: str | None,
     margin_capital: float,
     radius_km: float = 10.0,
+    language: str = "english",
 ) -> dict[str, Any]:
 
+    analysis_location = build_analysis_location(
+        country=country,
+        state=state,
+        district=district,
+        city=city,
+    )
+
+    # ========================================================
     # 1. POPULATION
+    # ========================================================
+
     population_result = safe_execute(
         "POPULATION",
         analyze_market_reach,
-        location=location,
+        location=analysis_location,
         radius_km=radius_km,
         year=2025,
     )
 
-    latitude, longitude = extract_coordinates(population_result)
+    population_latitude, population_longitude = extract_coordinates(population_result)
+
     population = extract_population(population_result)
 
-    # 2. COMPETITOR
-    if latitude is not None and longitude is not None:
+    analysis_latitude = population_latitude
+
+    analysis_longitude = population_longitude
+
+    # ========================================================
+    # 2. COMPETITORS
+    # ========================================================
+
+    if analysis_latitude is not None and analysis_longitude is not None:
         competitor_result = safe_execute(
             "COMPETITOR",
             analyze_competitors,
-            latitude=latitude,
-            longitude=longitude,
+            latitude=analysis_latitude,
+            longitude=analysis_longitude,
             population=int(population) if population else 0,
             business_type=business_type,
             radius_km=radius_km,
@@ -205,11 +248,13 @@ def generate_feasibility_report(
             "status": "failed",
             "data_available": False,
             "data": None,
-            "error": "Coordinates unavailable from population module.",
+            "error": ("Coordinates unavailable from population module and business."),
         }
 
+    # ========================================================
     # 3. MARKET PRICE
-    state = extract_state(location)
+    # ========================================================
+
     market_price_result = safe_execute(
         "MARKET PRICE",
         analyze_market_price,
@@ -217,37 +262,51 @@ def generate_feasibility_report(
         state=state,
     )
 
+    # ========================================================
     # 4. SUPPLY CHAIN
+    # ========================================================
+
     supply_chain_result = safe_execute(
         "SUPPLY CHAIN",
         evaluate_supply_chain,
-        location_name=location,
+        location_name=analysis_location,
         business_type=business_type,
     )
 
+    # ========================================================
     # 5. TRANSPORTATION
+    # ========================================================
+
     transportation_result = safe_execute(
         "TRANSPORTATION",
         run_supply_chain_and_transportation_analysis,
-        origin_location=location,
+        origin_location=analysis_location,
         business_type=business_type,
         search_radius_meters=30000,
     )
 
+    # ========================================================
     # 6. SEASONALITY
+    # ========================================================
+
     seasonality_result = safe_execute(
         "SEASONALITY",
         generate_dynamic_advisory_report,
-        location_name=location,
+        location_name=analysis_location,
         business_type=business_type,
         sample_12m_mandi_prices=None,
     )
 
+    # ========================================================
     # 7. COMPILE EVIDENCE
+    # ========================================================
+
     evidence_payload = {
         "input": {
-            "location": location,
+            "business_name": business_name,
             "business_type": business_type,
+            "business_description": business_description,
+            "location": analysis_location,
             "margin_capital": margin_capital,
             "radius_km": radius_km,
         },
@@ -260,20 +319,29 @@ def generate_feasibility_report(
     }
 
     evidence_json = json.dumps(
-        evidence_payload, indent=2, ensure_ascii=False, default=str
+        evidence_payload,
+        indent=2,
+        ensure_ascii=False,
+        default=str,
     )
 
-    # 8. GENERATE REPORT VIA GEMINI
+    # ========================================================
+    # 8. GENERATE ENGLISH REPORT
+    # ========================================================
+
     user_prompt = f"""
 Generate the complete Hyper-Local Business Feasibility Report.
+
 The data collection pipeline has already executed.
 You must analyze ONLY the evidence supplied below.
 
 ============================================================
 BUSINESS INPUT
 ============================================================
-Location: {location}
+Business Name: {business_name}
 Business Type: {business_type}
+Business Description: {business_description or "Not provided"}
+Location: {analysis_location}
 Available Margin Capital: ₹{margin_capital:,.2f}
 Market Radius: {radius_km} km
 
@@ -285,25 +353,67 @@ COLLECTED REAL-WORLD EVIDENCE
 ============================================================
 IMPORTANT
 ============================================================
-Some modules may have failed. A failed module is UNKNOWN.
+Some modules may have failed.
+A failed module is UNKNOWN.
 Do NOT invent replacement values.
-Generate the complete report using the required format from the system instructions.
+
+Generate the complete report using the required format
+from the system instructions.
 """
 
     client = get_gemini_client()
+
     try:
         response = client.models.generate_content(
             model=GEMINI_MODEL_NAME,
-            contents=[SYSTEM_PROMPT, user_prompt],
-            config=types.GenerateContentConfig(temperature=0.2),
+            contents=[
+                SYSTEM_PROMPT,
+                user_prompt,
+            ],
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+            ),
         )
+
         report_markdown = response.text
+
     except Exception as e:
         logger.error(f"[GEMINI] ❌ REPORT GENERATION FAILED: {str(e)}")
+
         raise RuntimeError(f"Report generation failed: {str(e)}")
+
+    # ========================================================
+    # 9. RETURN ORIGINAL ENGLISH OR TRANSLATED RESULT
+    # ========================================================
+
+    if language == "english":
+        return {
+            "status": "success",
+            "language": "english",
+            "report_markdown": report_markdown,
+            "raw_evidence": evidence_payload,
+            "analysis_latitude": analysis_latitude,
+            "analysis_longitude": analysis_longitude,
+        }
+
+    # --------------------------------------------------------
+    # Translation
+    # --------------------------------------------------------
+
+    translated = translate_feasibility_report(
+        report_markdown=report_markdown,
+        raw_evidence=evidence_payload,
+        target_language=language,
+    )
 
     return {
         "status": "success",
-        "report_markdown": report_markdown,
-        "raw_evidence": evidence_payload,
+        "language": language,
+        "translated": translated,
+        "report_markdown": translated["report_markdown"],
+        "raw_evidence": translated["raw_evidence"],
+        "original_report_markdown": report_markdown,
+        "original_evidence": evidence_payload,
+        "analysis_latitude": analysis_latitude,
+        "analysis_longitude": analysis_longitude,
     }

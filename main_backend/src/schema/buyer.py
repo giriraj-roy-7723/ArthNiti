@@ -7,7 +7,7 @@ from src.config.database import Base
 
 
 class Buyer(Base):
-    __tablename__ = "Buyers"
+    __tablename__ = "buyers"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     
     user_id = Column(

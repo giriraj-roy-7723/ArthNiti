@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="SKXYWTF Integration API",
+    title="ArthNiti Integration API",
     lifespan=lifespan,  # MUST be here
 )
 

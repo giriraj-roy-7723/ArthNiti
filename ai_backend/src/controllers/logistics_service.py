@@ -12,7 +12,7 @@ from src.utils.geo_utils import (
     haversine_distance_km,
 )
 
-from src.services.supply_chain_service import get_supply_chain_profile
+from src.controllers.supply_chain_service import get_supply_chain_profile
 
 
 def discover_nodes_for_logistics(

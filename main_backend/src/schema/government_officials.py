@@ -9,7 +9,7 @@ class RoleType(str, enum.Enum):
     ca = "ca"
     
 class GovernmentOfficial(Base):
-    __tablename__ = "Government_Officials"
+    __tablename__ = "government_officials"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.user_id"), nullable=False)
