@@ -1,6 +1,6 @@
 import json
 import requests
-from typing import Any, Dict
+from typing import Any
 from google.genai import types
 
 from src.config.config import GEMINI_MODEL_NAME, OVERPASS_URL, HEADERS

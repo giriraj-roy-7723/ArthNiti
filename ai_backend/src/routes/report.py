@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from src.models.report import ReportRequest, ReportResponse
-from src.services.report_service import generate_feasibility_report
+from src.controllers.report_service import generate_feasibility_report
+
+from src.middlewares.auth import verify_token
 
 router = APIRouter()
 
 
 @router.post("/generate", response_model=ReportResponse)
-def generate_report(request: ReportRequest):
+def generate_report(request: ReportRequest, user_id: str = Depends(verify_token)):
     """
     Orchestrates the entire pipeline (Population, Competitors, Prices, Supply Chain, Logistics, Advisory)
     and generates a comprehensive Markdown Feasibility Report.

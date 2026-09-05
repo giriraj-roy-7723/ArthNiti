@@ -1,12 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from src.models.competitor import CompetitorRequest, CompetitorResponse
-from src.services.competitor_service import analyze_competitors
+from src.controllers.competitor_service import analyze_competitors
+
+from src.middlewares.auth import verify_token
 
 router = APIRouter()
 
 
 @router.post("/analyze-competitors", response_model=CompetitorResponse)
-async def get_competitors(request: CompetitorRequest):
+async def get_competitors(
+    request: CompetitorRequest,
+    user_id: str = Depends(verify_token),
+):
     try:
         result = analyze_competitors(
             latitude=request.latitude,

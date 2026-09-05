@@ -1,12 +1,20 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Depends
 from src.models.logistics import LogisticsRequest, LogisticsResponse
-from src.services.logistics_service import run_supply_chain_and_transportation_analysis
+from src.controllers.logistics_service import (
+    run_supply_chain_and_transportation_analysis,
+)
+
+from src.middlewares.auth import verify_token
+
 
 router = APIRouter()
 
 
 @router.post("/evaluate", response_model=LogisticsResponse)
-async def evaluate_logistics(request: LogisticsRequest):
+async def evaluate_logistics(
+    request: LogisticsRequest,
+    user_id: str = Depends(verify_token),
+):
     try:
         result = run_supply_chain_and_transportation_analysis(
             business_type=request.business_type,

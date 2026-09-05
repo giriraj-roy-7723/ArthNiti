@@ -1,17 +1,19 @@
 import json
 import logging
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 from google.genai import types
 
 from src.config.config import GEMINI_MODEL_NAME
 from src.utils.ai_utils import get_gemini_client
 
 # Import all our previously built services
-from src.services.population_service import analyze_market_reach
-from src.services.competitor_service import analyze_competitors
-from src.services.market_price_service import analyze_market_price
-from src.services.supply_chain_service import evaluate_supply_chain
-from src.services.logistics_service import run_supply_chain_and_transportation_analysis
+from src.controllers.population_service import analyze_market_reach
+from src.controllers.competitor_service import analyze_competitors
+from src.controllers.market_price_service import analyze_market_price
+from src.controllers.supply_chain_service import evaluate_supply_chain
+from src.controllers.logistics_service import (
+    run_supply_chain_and_transportation_analysis,
+)
 from src.services.advisory_service import generate_dynamic_advisory_report
 
 logger = logging.getLogger(__name__)
