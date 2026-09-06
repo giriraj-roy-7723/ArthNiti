@@ -2,22 +2,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-# class ReportRequest(BaseModel):
-#     location: str
-#     business_type: str
-#     margin_capital: float
-#     radius_km: float = 10.0
-
-
-# class ReportResponse(BaseModel):
-#     status: str
-#     report_markdown: str
-#     raw_evidence: dict[str, Any]
-
-# # src/models/report.py
-
-
 class ReportRequest(BaseModel):
+    business_id: str
     business_name: str
     business_type: str
     business_description: str | None = None
@@ -49,7 +35,6 @@ class ReportRequest(BaseModel):
 
 class ReportResponse(BaseModel):
     status: str
-    report: dict[str, Any]
     analysis_id: str
     version: int
     language: str

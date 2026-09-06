@@ -35,34 +35,34 @@ app = FastAPI(
 )
 
 # Individual Module Routes
-app.include_router(population.router, prefix="/api/v1/population", tags=["Population"])
+# app.include_router(population.router, prefix="/api/v1/population", tags=["Population"])
 
-app.include_router(
-    competitor.router, prefix="/api/v1/competitors", tags=["Competitors"]
-)
-app.include_router(
-    market_price.router, prefix="/api/v1/market-price", tags=["Market Price"]
-)
-app.include_router(
-    supply_chain.router, prefix="/api/v1/supply-chain", tags=["Supply Chain"]
-)
-app.include_router(
-    logistics.router, prefix="/api/v1/logistics", tags=["Logistics & Freight"]
-)
-app.include_router(
-    advisory.router, prefix="/api/v1/advisory", tags=["Seasonal Advisory & Risks"]
-)
+# app.include_router(
+#     competitor.router, prefix="/api/v1/competitors", tags=["Competitors"]
+# )
+# app.include_router(
+#     market_price.router, prefix="/api/v1/market-price", tags=["Market Price"]
+# )
+# app.include_router(
+#     supply_chain.router, prefix="/api/v1/supply-chain", tags=["Supply Chain"]
+# )
+# app.include_router(
+#     logistics.router, prefix="/api/v1/logistics", tags=["Logistics & Freight"]
+# )
+# app.include_router(
+#     advisory.router, prefix="/api/v1/advisory", tags=["Seasonal Advisory & Risks"]
+# )
 
 # The Master Orchestrator Route
 app.include_router(
     report.router, prefix="/api/v1/report", tags=["Master Report Generation"]
 )
 
-app.include_router(
-    report_translation.router,
-    prefix="/api/v1/translation",
-    tags=["Report Translation"],
-)
+# app.include_router(
+#     report_translation.router,
+#     prefix="/api/v1/translation",
+#     tags=["Report Translation"],
+# )
 
 app.include_router(
     business_profile.router,

@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.database import get_db
 
 from src.middlewares.role import require_enterpreneur
 from src.schema.enterpreneur import Enterpreneur
+from src.schema.business_profile import BusinessProfile
+from src.schema.business_profile_translation import BusinessProfileTranslation
 
 # Ensure you import the combined service function we created
 from src.controllers.business_profile_service import process_profile_and_recommendations
@@ -26,11 +29,31 @@ async def route_create_profile_and_recommend_schemes(
     language: str = Query(
         "en", description="Target language code (e.g., 'en', 'hi', 'bn')"
     ),
+    force: bool = Query(False),
     limit: int = Query(10, ge=1, le=20, description="Number of schemes to return"),
     enterpreneur: Enterpreneur = Depends(require_enterpreneur),
     db: AsyncSession = Depends(get_db),
 ):
     try:
+        if force:
+            profile_result = await db.execute(
+                select(BusinessProfile.id).where(
+                    BusinessProfile.business_id == business_id
+                )
+            )
+            profile_ids = profile_result.scalars().all()
+
+            if profile_ids:
+                await db.execute(
+                    delete(BusinessProfileTranslation).where(
+                        BusinessProfileTranslation.business_profile_id.in_(profile_ids)
+                    )
+                )
+                await db.execute(
+                    delete(BusinessProfile).where(BusinessProfile.id.in_(profile_ids))
+                )
+            await db.flush()
+
         # This single controller function now generates the profile,
         # searches the vector DB, translates, and saves to both tables.
         result = await process_profile_and_recommendations(

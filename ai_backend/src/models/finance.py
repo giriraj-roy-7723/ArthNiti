@@ -33,6 +33,7 @@ SCHEMES = {
 
 
 class FinancialPlanRequest(BaseModel):
+    business_id:str
     margin: float = Field(..., gt=0, description="Initial margin capital")
     monthly_revenue: float = Field(..., ge=0)
     monthly_direct_costs: float = Field(..., ge=0)

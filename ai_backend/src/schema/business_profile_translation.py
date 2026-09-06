@@ -1,40 +1,43 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, Text
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 
 from src.config.database import Base
 
 
-class BusinessProfile(Base):
-    __tablename__ = "business_profiles"
+class BusinessProfileTranslation(Base):
+    __tablename__ = "business_profile_translations"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-
-    business_id = Column(
+    id = Column(
         String,
-        ForeignKey("businesses.id", ondelete="CASCADE"),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+
+    business_profile_id = Column(
+        String,
+        ForeignKey("business_profiles.id", ondelete="CASCADE"),
         nullable=False,
-        unique=True,
         index=True,
     )
 
-    analysis_id = Column(
-        String,
-        ForeignKey("business_analysis.id", ondelete="CASCADE"),
+    language = Column(
+        String(50),
         nullable=False,
-        index=True,
     )
 
     business_profile = Column(
         JSONB,
-        nullable=False,
-    )
-
-    eligibility_profile = Column(
-        JSONB,
-        nullable=False,
+        nullable=True,
     )
 
     recommended_schemes = Column(
@@ -58,4 +61,12 @@ class BusinessProfile(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "business_profile_id",
+            "language",
+            name="uq_business_profile_translation_language",
+        ),
     )
