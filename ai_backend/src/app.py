@@ -10,12 +10,14 @@ from src.routes import (
     report,
     business_profile,
     finance_routes,
+    getter_routes,
     assistant,
 )
 from src.config.database import engine, Base
 from contextlib import asynccontextmanager
 
-from src.config.langgraph import init_langgraph,close_langgraph
+from src.config.langgraph import init_langgraph, close_langgraph
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -79,6 +81,12 @@ app.include_router(
     finance_routes.router,
     prefix="/api/v1/finance",
     tags=["Finance planning"],
+)
+
+app.include_router(
+    getter_routes.router,
+    prefix="/api/v1",
+    tags=["Business Data Getters"],
 )
 
 # Business chat agent
