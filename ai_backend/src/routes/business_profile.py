@@ -3,6 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.database import get_db
 
+from src.middlewares.role import require_enterpreneur
+from src.schema.enterpreneur import Enterpreneur
+
 # Ensure you import the combined service function we created
 from src.controllers.business_profile_service import process_profile_and_recommendations
 from src.models.business_profile_request import (
@@ -10,10 +13,7 @@ from src.models.business_profile_request import (
     EligibilityProfileRequest,
 )
 
-router = APIRouter(
-    prefix="/business-profile",
-    tags=["Business Profile & Schemes"],
-)
+router = APIRouter()
 
 
 @router.post(
@@ -27,6 +27,7 @@ async def route_create_profile_and_recommend_schemes(
         "en", description="Target language code (e.g., 'en', 'hi', 'bn')"
     ),
     limit: int = Query(10, ge=1, le=20, description="Number of schemes to return"),
+    enterpreneur: Enterpreneur = Depends(require_enterpreneur),
     db: AsyncSession = Depends(get_db),
 ):
     try:

@@ -8,10 +8,12 @@ from src.routes import (
     advisory,
     report,
     report_translation,
-    business_profile
+    business_profile,
+    finance_routes,
 )
 from src.config.database import engine, Base
 from contextlib import asynccontextmanager
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -64,8 +66,14 @@ app.include_router(
 
 app.include_router(
     business_profile.router,
-    prefix="/api/v1/business_profile",
-    tags=["Business profile generator"],
+    prefix="/api/v1/government-schemes",
+    tags=["Government Schemes"],
+)
+
+app.include_router(
+    finance_routes.router,
+    prefix="/api/v1/finance",
+    tags=["Finance planning"],
 )
 
 
