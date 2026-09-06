@@ -115,6 +115,9 @@ async def signup_user(data, db: AsyncSession):
 
         await db.commit()
 
+    else:
+        raise HTTPException(status_code=400,message="Select a valid role among enterpreneur,buyer,government official")
+
     token = create_access_token({"user_id": user_id})
 
     return {
