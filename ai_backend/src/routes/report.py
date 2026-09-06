@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +17,12 @@ from src.schema.enterpreneur import Enterpreneur
 from src.schema.report_translations import ReportLanguage, ReportTranslation
 from src.models.report import ReportRequest, ReportResponse
 
+# --- New Imports Required ---
+from src.schema.business_report_chunk import BusinessReportChunk
+from src.services.scheme_embedding import generate_embedding
+from src.utils.report_utils import parse_report_sections, split_text_recursively
+
+
 router = APIRouter()
 
 
@@ -31,7 +38,7 @@ async def generate_report(
 ):
     """
     Create a pending business, generate its feasibility analysis,
-    persist the analysis, and return the result.
+    persist the analysis, chunk the report for vector storage, and return the result.
     """
 
     business_result = await db.execute(
@@ -71,15 +78,21 @@ async def generate_report(
         analysis_ids = analysis_ids_result.scalars().all()
 
         if analysis_ids:
+            # Delete translations
             await db.execute(
                 delete(ReportTranslation).where(
                     ReportTranslation.report_id.in_(analysis_ids)
                 )
             )
+            # Delete chunks before deleting analysis due to cascading/foreign keys
             await db.execute(
-                delete(BusinessAnalysis).where(
-                    BusinessAnalysis.id.in_(analysis_ids)
+                delete(BusinessReportChunk).where(
+                    BusinessReportChunk.business_analysis_id.in_(analysis_ids)
                 )
+            )
+            # Delete analysis
+            await db.execute(
+                delete(BusinessAnalysis).where(BusinessAnalysis.id.in_(analysis_ids))
             )
         await db.flush()
 
@@ -102,6 +115,53 @@ async def generate_report(
             "transportation": existing_analysis.transportation_payload,
             "seasonality": existing_analysis.seasonality_payload,
         }
+
+        # ========================================================
+        # Lazy Chunk Backfill (Creates chunks for older legacy reports)
+        # ========================================================
+
+        # 1. Check if this existing report has any chunks saved
+        chunk_check_result = await db.execute(
+            select(BusinessReportChunk.id)
+            .where(BusinessReportChunk.business_analysis_id == existing_analysis.id)
+            .limit(1)
+        )
+        has_chunks = chunk_check_result.scalar_one_or_none() is not None
+
+        # 2. If no chunks exist, generate and save them right now
+        if not has_chunks:
+            try:
+                sections = parse_report_sections(existing_analysis.report_markdown)
+                chunks_to_insert = []
+                for section in sections:
+                    text_chunks = split_text_recursively(
+                        section["content"], max_chars=1500, overlap=150
+                    )
+                    for chunk_idx, chunk_text in enumerate(text_chunks):
+                        embedding_text = f"Section {section['number']}: {section['title']}\n\n{chunk_text}"
+                        embedding_vector = generate_embedding(embedding_text)
+
+                        chunks_to_insert.append(
+                            BusinessReportChunk(
+                                business_id=business.id,
+                                business_analysis_id=existing_analysis.id,
+                                version=existing_analysis.version,
+                                section_number=section["number"],
+                                section_title=section["title"],
+                                chunk_index=chunk_idx,
+                                content=chunk_text,
+                                embedding_text=embedding_text,
+                                embedding=embedding_vector,
+                            )
+                        )
+                if chunks_to_insert:
+                    db.add_all(chunks_to_insert)
+                    await db.commit()  # Save the new chunks for the old report!
+            except Exception as e:
+                await db.rollback()
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to backfill chunks: {str(e)}"
+                )
 
         if language == "english":
             return ReportResponse(
@@ -180,7 +240,6 @@ async def generate_report(
     # ========================================================
     # Generate report
     # ========================================================
-
     try:
         result = generate_feasibility_report(
             business_name=request.business_name,
@@ -206,7 +265,6 @@ async def generate_report(
     # ========================================================
     # Get coordinates from generated population response
     # ========================================================
-
     latitude = result.get("analysis_latitude")
     longitude = result.get("analysis_longitude")
 
@@ -217,7 +275,6 @@ async def generate_report(
     # ========================================================
     # Persist analysis
     # ========================================================
-
     try:
         analysis = await save_business_analysis(
             db=db,
@@ -227,10 +284,7 @@ async def generate_report(
             latitude=latitude,
             longitude=longitude,
         )
-
-        # Business has successfully received an analysis.
-        await db.commit()
-        await db.refresh(analysis)
+        await db.flush()  # Flush to get analysis.id before chunking
 
     except Exception as e:
         await db.rollback()
@@ -240,12 +294,61 @@ async def generate_report(
         )
 
     # ========================================================
+    # Section Splitting, Chunking & Embeddings
+    # ========================================================
+    try:
+        # Extract English markdown for embedding generation
+        markdown_text = result["original_report_markdown"]
+        sections = parse_report_sections(markdown_text)
+
+        chunks_to_insert = []
+
+        for section in sections:
+            # Recursively split large sections
+            text_chunks = split_text_recursively(
+                section["content"], max_chars=1500, overlap=150
+            )
+
+            for chunk_idx, chunk_text in enumerate(text_chunks):
+                # Prepend section context to improve vector retrieval semantic meaning
+                embedding_text = (
+                    f"Section {section['number']}: {section['title']}\n\n{chunk_text}"
+                )
+
+                # Execute embedding synchronously (or in threadpool if high concurrency is required)
+                embedding_vector = generate_embedding(embedding_text)
+
+                chunk_record = BusinessReportChunk(
+                    business_id=business.id,
+                    business_analysis_id=analysis.id,
+                    version=analysis.version,
+                    section_number=section["number"],
+                    section_title=section["title"],
+                    chunk_index=chunk_idx,
+                    content=chunk_text,
+                    embedding_text=embedding_text,
+                    embedding=embedding_vector,
+                )
+                chunks_to_insert.append(chunk_record)
+
+        if chunks_to_insert:
+            db.add_all(chunks_to_insert)
+
+        await db.commit()
+        await db.refresh(analysis)
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process and store report chunks: {str(e)}",
+        )
+
+    # ========================================================
     # Response
     # ========================================================
-
     return ReportResponse(
         status="success",
-        # report=result,
         analysis_id=analysis.id,
         version=analysis.version,
         language=result["language"],

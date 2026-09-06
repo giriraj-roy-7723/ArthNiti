@@ -1,5 +1,3 @@
-# src/services/scheme_embedding.py
-
 from sentence_transformers import SentenceTransformer
 
 

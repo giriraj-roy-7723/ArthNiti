@@ -1,19 +1,21 @@
 from fastapi import FastAPI
 from src.routes import (
-    population,
-    competitor,
-    market_price,
-    supply_chain,
-    logistics,
-    advisory,
+    # population,
+    # competitor,
+    # market_price,
+    # supply_chain,
+    # logistics,
+    # advisory,
+    # report_translation,
     report,
-    report_translation,
     business_profile,
     finance_routes,
+    assistant,
 )
 from src.config.database import engine, Base
 from contextlib import asynccontextmanager
 
+from src.config.langgraph import init_langgraph,close_langgraph
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,7 +26,9 @@ async def lifespan(app: FastAPI):
 
     print("Tables after create:", Base.metadata.tables.keys())
 
+    await init_langgraph()
     yield
+    await close_langgraph()
 
 
 app = FastAPI(
@@ -35,8 +39,9 @@ app = FastAPI(
 )
 
 # Individual Module Routes
-# app.include_router(population.router, prefix="/api/v1/population", tags=["Population"])
-
+# app.include_router(
+#     population.router, prefix="/api/v1/population", tags=["Population"]
+# )
 # app.include_router(
 #     competitor.router, prefix="/api/v1/competitors", tags=["Competitors"]
 # )
@@ -52,31 +57,35 @@ app = FastAPI(
 # app.include_router(
 #     advisory.router, prefix="/api/v1/advisory", tags=["Seasonal Advisory & Risks"]
 # )
+# app.include_router(
+#     report_translation.router,prefix="/api/v1/translation",tags=["Report Translation"]
+# )
+
 
 # The Master Orchestrator Route
 app.include_router(
     report.router, prefix="/api/v1/report", tags=["Master Report Generation"]
 )
 
-# app.include_router(
-#     report_translation.router,
-#     prefix="/api/v1/translation",
-#     tags=["Report Translation"],
-# )
-
+# The Government Schemes route
 app.include_router(
     business_profile.router,
     prefix="/api/v1/government-schemes",
     tags=["Government Schemes"],
 )
 
+# Fiantial planner route
 app.include_router(
     finance_routes.router,
     prefix="/api/v1/finance",
     tags=["Finance planning"],
 )
 
+# Business chat agent
+app.include_router(assistant.router, prefix="/assistant", tags=["Assistant"])
 
+
+# Server test route
 @app.get("/")
 def read_root():
     return {
