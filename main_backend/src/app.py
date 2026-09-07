@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from src.routes.auth_routes import router as auth_router
 from src.routes.business_routes import router as business_router
+from src.routes.government_official_routes import router as government_official_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,3 +36,8 @@ app.add_middleware(
 # register routes
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(business_router, prefix="/businesses", tags=["Businesses"])
+app.include_router(
+    government_official_router,
+    prefix="/government-officials",
+    tags=["Government Officials"],
+)
