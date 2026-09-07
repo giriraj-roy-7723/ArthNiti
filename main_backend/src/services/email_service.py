@@ -3,11 +3,10 @@ from src.config.mail import conf
 
 async def send_invite_email(
     email: str,
-    department: str,
     invite_url: str
 ):
     message = MessageSchema(
-        subject="Invitation to Join Payroll Platform",
+        subject="GAND MARAO",
         recipients=[email],
         body=f"""
             Hello,
