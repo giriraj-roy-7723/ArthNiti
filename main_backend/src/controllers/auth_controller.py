@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from src.schema.user import User, generate_unique_username
 from src.schema.invite import Invite
 from src.schema.buyer import Buyer
-from src.schema.enterpreruner import Enterpreneur
+from src.schema.enterpreneur import Enterpreneur
 from src.schema.government_officials import GovernmentOfficial
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -114,7 +114,6 @@ async def signup_user(data, db: AsyncSession):
         db.add(investor)
 
         await db.commit()
-
     else:
         raise HTTPException(status_code=400,message="Select a valid role among enterpreneur,buyer,government official")
 
