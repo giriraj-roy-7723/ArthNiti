@@ -4,6 +4,7 @@ from src.config.database import engine, Base
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from src.routes.auth_routes import router as auth_router
+from src.routes.business_routes import router as business_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,3 +34,4 @@ app.add_middleware(
 
 # register routes
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(business_router, prefix="/businesses", tags=["Businesses"])
