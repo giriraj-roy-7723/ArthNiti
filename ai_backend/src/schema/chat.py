@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from src.config.database import Base
 
@@ -15,7 +15,6 @@ class ChatSession(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    # Relationship to messages
     messages = relationship(
         "ChatMessage", back_populates="session", cascade="all, delete-orphan"
     )
@@ -29,10 +28,36 @@ class ChatMessage(Base):
         String, ForeignKey("chat_sessions.id"), index=True, nullable=False
     )
     role = Column(String, nullable=False)  # 'user' or 'agent'
-    content = Column(Text, nullable=False)
+    content = Column(Text, nullable=False)  # Always stores the English version
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    # Relationship back to session
     session = relationship("ChatSession", back_populates="messages")
+    # One-to-many relationship mapping a single English message to multiple languages
+    translations = relationship(
+        "ChatMessageTranslation", back_populates="message", cascade="all, delete-orphan"
+    )
+
+
+class ChatMessageTranslation(Base):
+    __tablename__ = "chat_message_translations"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    message_id = Column(
+        String, ForeignKey("chat_messages.id"), index=True, nullable=False
+    )
+    language = Column(String, index=True, nullable=False)  # e.g., 'bn', 'hi'
+    content = Column(Text, nullable=False)  # The translated text
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    message = relationship("ChatMessage", back_populates="translations")
+
+    # Enforce one translation per language for a specific message
+    __table_args__ = (
+        UniqueConstraint(
+            "message_id", "language", name="uq_message_translation_language"
+        ),
+    )

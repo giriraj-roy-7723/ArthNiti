@@ -67,18 +67,21 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
             business = result.scalar_one_or_none()
 
             if not business:
+                # Wrap the agent's English strings into the JSONB schema structure
                 business = Business(
                     id=business_id,
                     owner_id=user_id,
-                    business_name=business_name,
-                    category=business_type,
+                    business_name={"en": business_name},
+                    category={"en": business_type},
                     margin_capital=margin_capital,
-                    description=business_description,
-                    village=village,
-                    district=district,
-                    city=city,
-                    state=state,
-                    country=country,
+                    description={"en": business_description}
+                    if business_description
+                    else {},
+                    village={"en": village} if village else {},
+                    district={"en": district},
+                    city={"en": city} if city else {},
+                    state={"en": state},
+                    country={"en": country},
                     pincode=pincode,
                     latitude=0.0,
                     longitude=0.0,
@@ -87,7 +90,7 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
                 db.add(business)
                 await db.flush()
 
-            # 2. Run the Orchestrator Pipeline
+            # 2. Run the Orchestrator Pipeline (Agent background processes run in English)
             report_result = generate_feasibility_report(
                 business_name=business_name,
                 business_type=business_type,

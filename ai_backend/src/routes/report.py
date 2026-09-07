@@ -17,7 +17,6 @@ from src.schema.enterpreneur import Enterpreneur
 from src.schema.report_translations import ReportLanguage, ReportTranslation
 from src.models.report import ReportRequest, ReportResponse
 
-# --- New Imports Required ---
 from src.schema.business_report_chunk import BusinessReportChunk
 from src.services.scheme_embedding import generate_embedding
 from src.utils.report_utils import parse_report_sections, split_text_recursively
@@ -25,6 +24,17 @@ from src.utils.report_utils import parse_report_sections, split_text_recursively
 
 router = APIRouter()
 
+language_codes = {
+    "english": "en",
+    "en": "en",
+    "eng": "en",
+    "bengali": "bn",
+    "beng": "bn",
+    "bn": "bn",
+    "hindi": "hi",
+    "hind": "hi",
+    "hi": "hi",
+}
 
 @router.post(
     "/generate",
@@ -49,18 +59,26 @@ async def generate_report(
     )
     business = business_result.scalar_one_or_none()
 
+    req_lang = request.language.strip().lower()
+    lang_code = language_codes[req_lang]
+    
     if not business:
+        # Determine the correct JSONB key based on the request language
+        
+
         business = Business(
             owner_id=entrepreneur.user_id,
-            business_name=request.business_name,
-            category=request.business_type,
+            business_name={lang_code: request.business_name},
+            category={lang_code: request.business_type},
             margin_capital=request.margin_capital,
-            description=request.business_description,
-            village=request.village,
-            district=request.district,
-            city=request.city,
-            state=request.state,
-            country=request.country,
+            description={lang_code: request.business_description}
+            if request.business_description
+            else {},
+            village={lang_code: request.village} if request.village else {},
+            district={lang_code: request.district},
+            city={lang_code: request.city} if request.city else {},
+            state={lang_code: request.state},
+            country={lang_code: request.country},
             pincode=request.pincode,
             latitude=0.0,
             longitude=0.0,
@@ -68,6 +86,21 @@ async def generate_report(
         )
         db.add(business)
         await db.flush()
+    else:
+        request.business_id = business.id
+        request.business_name = business.business_name.get("en","")
+        request.business_type = business.category.get("en","")
+        request.business_description = business.description.get("en","")
+
+        request.country = business.country.get("en","")
+        request.state = business.state.get("en","")
+        request.district = business.district.get("en","")
+        request.city = business.city.get("en","")
+        request.village = business.village.get("en","")
+        request.pincode = business.pincode
+
+        request.margin_capital = business.margin_capital
+
 
     if force:
         analysis_ids_result = await db.execute(
@@ -94,7 +127,9 @@ async def generate_report(
             await db.execute(
                 delete(BusinessAnalysis).where(BusinessAnalysis.id.in_(analysis_ids))
             )
+
         await db.flush()
+
 
     latest_result = await db.execute(
         select(BusinessAnalysis)
@@ -173,15 +208,11 @@ async def generate_report(
                 raw_evidence=original_evidence,
             )
 
-        try:
-            report_language = ReportLanguage(language)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Unsupported language.")
 
         translation_result = await db.execute(
             select(ReportTranslation).where(
                 ReportTranslation.report_id == existing_analysis.id,
-                ReportTranslation.language == report_language,
+                ReportTranslation.language == request.language,
             )
         )
         existing_translation = translation_result.scalar_one_or_none()
@@ -216,7 +247,7 @@ async def generate_report(
         translated_evidence = translated_result["raw_evidence"]
         translation = ReportTranslation(
             report_id=existing_analysis.id,
-            language=report_language,
+            language=request.language,
             content=translated_result["report_markdown"],
             population_payload=translated_evidence.get("population"),
             competitor_payload=translated_evidence.get("competitors"),

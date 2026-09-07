@@ -11,14 +11,19 @@ from src.schema.financial_analysis import FinancialAnalysis
 from src.schema.business_profile import BusinessProfile
 from src.schema.business_analysis import BusinessAnalysis
 from src.schema.business import Business
-from src.schema.enterpreneur import Enterpreneur
-from src.schema.user import User
 
 from src.services.business_report_search import (
     search_business_report as report_vector_search,
 )
 from src.services.scheme_embedding import generate_embedding
 from src.services.scheme_search import search_similar_schemes
+
+
+def get_en(field) -> str:
+    """Safely extract the English string from a JSONB column or fallback to string."""
+    if isinstance(field, dict):
+        return field.get("en", "")
+    return str(field or "")
 
 
 def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
@@ -44,17 +49,17 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
 
         return {
             "business_id": business.id,
-            "business_name": business.business_name,
-            "category": business.category,
+            "business_name": get_en(business.business_name),
+            "category": get_en(business.category),
             "margin_capital": business.margin_capital,
-            "description": business.description,
+            "description": get_en(business.description),
             "location": {
-                "village": business.village,
-                "district": business.district,
-                "city": business.city,
-                "state": business.state,
-                "country": business.country,
-                "pincode": business.pincode,
+                "village": get_en(business.village),
+                "district": get_en(business.district),
+                "city": get_en(business.city),
+                "state": get_en(business.state),
+                "country": get_en(business.country),
+                "pincode": business.pincode,  # Standard string
                 "latitude": business.latitude,
                 "longitude": business.longitude,
             },
@@ -120,7 +125,7 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
             return {
                 "version": analysis.version,
                 "radius_km": analysis.radius_km,
-                payload_type: payload,
+                "payload_type": payload,
             }
 
         return {
@@ -257,7 +262,6 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
             return response.get("results", [])
         except Exception as e:
             return {"error": f"Web search failed: {str(e)}"}
-
 
     return [
         get_business_details,

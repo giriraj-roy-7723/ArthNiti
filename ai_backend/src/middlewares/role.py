@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from src.middlewares.auth import verify_token
 from src.config.database import get_db
-from src.schema.user import User
+from src.schema.user import User, UserRole
 from src.schema.enterpreneur import Enterpreneur
 
 
@@ -22,7 +22,7 @@ async def require_admin(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
-    if user.role != "admin":
+    if user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Admin access required")
 
     return user
@@ -42,7 +42,7 @@ async def require_enterpreneur(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
-    if user.role != "enterpreneur":
+    if user.role != UserRole.enterpreneur:
         raise HTTPException(status_code=403, detail="You're not an enterpreneur")
 
     result = await db.execute(

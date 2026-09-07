@@ -2,13 +2,13 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, String, Text
-
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy.dialects.postgresql import JSONB
 from src.config.database import Base
 
 
 class BusinessStatus(str, enum.Enum):
-    pending="pending"
+    pending = "pending"
     active = "active"
     closed = "closed"
 
@@ -25,18 +25,20 @@ class Business(Base):
         index=True,
     )
 
-    business_name = Column(String, nullable=False)
-    category = Column(String, nullable=False)
-    margin_capital = Column(Float,nullable=False)
-    description = Column(Text, nullable=True)
+    # Multilingual fields
+    business_name = Column(JSONB, nullable=False, default=dict)
+    category = Column(JSONB, nullable=False, default=dict)
+    description = Column(JSONB, nullable=True, default=dict)
 
-    village = Column(String, nullable=True)
-    district = Column(String, nullable=False)
-    city = Column(String, nullable=True)
-    state = Column(String, nullable=False)
-    country = Column(String, nullable=False)
+    village = Column(JSONB, nullable=True, default=dict)
+    district = Column(JSONB, nullable=False, default=dict)
+    city = Column(JSONB, nullable=True, default=dict)
+    state = Column(JSONB, nullable=False, default=dict)
+    country = Column(JSONB, nullable=False, default=dict)
+
+    # Numeric/System fields (not translated)
+    margin_capital = Column(Float, nullable=False)
     pincode = Column(String, nullable=True)
-
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
 

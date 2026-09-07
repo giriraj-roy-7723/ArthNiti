@@ -401,6 +401,11 @@ from the system instructions.
             "language": "english",
             "report_markdown": report_markdown,
             "raw_evidence": evidence_payload,
+            
+            # Keep the original English report available
+            "original_report_markdown": report_markdown,
+            "original_evidence": evidence_payload,
+
             "analysis_latitude": analysis_latitude,
             "analysis_longitude": analysis_longitude,
         }

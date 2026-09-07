@@ -83,14 +83,15 @@ app.include_router(
     tags=["Finance planning"],
 )
 
+# Business chat agent
+app.include_router(assistant.router, prefix="/api/v1/assistant", tags=["Assistant"])
+
+# getter routes
 app.include_router(
     getter_routes.router,
     prefix="/api/v1",
     tags=["Business Data Getters"],
 )
-
-# Business chat agent
-app.include_router(assistant.router, prefix="/assistant", tags=["Assistant"])
 
 
 # Server test route

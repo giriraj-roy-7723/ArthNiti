@@ -73,6 +73,14 @@ def create_dynamic_system_prompt(
 
     return dynamic_system_prompt
 
+
+def get_en(field) -> str:
+    """Helper to safely extract the English string from a JSONB column or fallback to string."""
+    if isinstance(field, dict):
+        return field.get("en", "")
+    return str(field or "")
+
+
 async def get_user_details_for_prompt(
     db: AsyncSession,
     user_id: str,
@@ -86,19 +94,19 @@ async def get_user_details_for_prompt(
 
     return {
         "user_id": user.user_id,
-        "name": f"{user.first_name} {user.last_name}",
+        "name": f"{get_en(user.first_name)} {get_en(user.last_name)}".strip(),
         "username": user.username,
         "email": user.email,
         "phone_number": user.phone_number,
         "role": user.role.value if hasattr(user.role, "value") else user.role,
         "location": {
-            "address": user.address,
-            "village": user.village,
-            "district": user.district,
-            "city": user.city,
-            "state": user.state,
-            "country": user.country,
-            "pincode": user.pincode,
+            "address": get_en(user.address),
+            "village": get_en(user.village),
+            "district": get_en(user.district),
+            "city": get_en(user.city),
+            "state": get_en(user.state),
+            "country": get_en(user.country),
+            "pincode": user.pincode,  # Pincode is a standard string, no extraction needed
         },
     }
 
