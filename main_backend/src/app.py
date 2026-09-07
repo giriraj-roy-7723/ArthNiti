@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.routes.auth_routes import router as auth_router
 from src.routes.business_routes import router as business_router
 from src.routes.government_official_routes import router as government_official_router
+from src.routes.email_routes import router as email_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,3 +42,4 @@ app.include_router(
     prefix="/government-officials",
     tags=["Government Officials"],
 )
+app.include_router(email_router, prefix="/emails", tags=["Emails"])
