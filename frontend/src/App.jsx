@@ -5,6 +5,10 @@ import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import BusinessAnalysis from './pages/BusinessAnalysis';
+import FinanceAnalyser from './pages/FinanceAnalyser';
+import GovernmentSchemes from './pages/GovernmentSchemes';
+import Chatbot from './pages/Chatbot';
 
 export default function App() {
   return (
@@ -16,6 +20,11 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/dashboard" element={<BusinessAnalysis />} />
+              <Route path="/dashboard/business-analysis" element={<BusinessAnalysis />} />
+              <Route path="/dashboard/finance-analyser" element={<FinanceAnalyser />} />
+              <Route path="/dashboard/government-schemes" element={<GovernmentSchemes />} />
+              <Route path="/dashboard/chatbot" element={<Chatbot />} />
             </Routes>
           </MainLayout>
         </LanguageProvider>
