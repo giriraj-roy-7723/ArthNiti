@@ -21,6 +21,8 @@ from src.schema.business_report_chunk import BusinessReportChunk
 from src.services.scheme_embedding import generate_embedding
 from src.utils.report_utils import parse_report_sections, split_text_recursively
 
+from src.utils.translator_utils import translate_entry
+
 
 router = APIRouter()
 
@@ -35,6 +37,138 @@ language_codes = {
     "hind": "hi",
     "hi": "hi",
 }
+
+MULTILINGUAL_BUSINESS_FIELDS = [
+    "business_name",
+    "category",
+    "description",
+    "village",
+    "district",
+    "city",
+    "state",
+    "country",
+]
+
+
+def get_available_source_language(
+    business: Business,
+    target_language: str,
+) -> str | None:
+    """
+    Find a language that already exists in the database.
+
+    We prefer:
+    1. A language different from target_language
+    2. Otherwise target_language itself
+
+    This avoids hardcoding English as the source language.
+    """
+
+    available_languages = set()
+
+    for field in MULTILINGUAL_BUSINESS_FIELDS:
+        value = getattr(business, field, None) or {}
+
+        if isinstance(value, dict):
+            available_languages.update(value.keys())
+
+    # Prefer another language as the translation source
+    for lang in available_languages:
+        if lang != target_language:
+            return lang
+
+    # If only target language exists, return it
+    if target_language in available_languages:
+        return target_language
+
+    return None
+
+
+async def ensure_business_language(
+    business: Business,
+    target_language: str,
+    db: AsyncSession,
+):
+    """
+    Make sure every multilingual business field has the requested language.
+
+    If even one field is missing the requested language, translate ALL
+    multilingual fields using a language already available in the DB.
+    """
+
+    # Check whether all fields already contain the requested language
+    all_translated = True
+
+    for field in MULTILINGUAL_BUSINESS_FIELDS:
+        value = getattr(business, field, None) or {}
+
+        if not value or target_language not in value:
+            all_translated = False
+            break
+
+    if all_translated:
+        return
+
+    # Find a source language that actually exists in the DB
+    source_language = get_available_source_language(
+        business,
+        target_language,
+    )
+
+    if not source_language:
+        raise HTTPException(
+            status_code=400,
+            detail="No source language is available for business translation.",
+        )
+
+    # Build the source entry using ONLY the selected source language
+    source_entry = {}
+
+    for field in MULTILINGUAL_BUSINESS_FIELDS:
+        value = getattr(business, field, None) or {}
+
+        source_entry[field] = value.get(source_language)
+
+    # Remove fields that don't have a value in the source language
+    source_entry = {
+        key: value for key, value in source_entry.items() if value is not None
+    }
+
+    if not source_entry:
+        raise HTTPException(
+            status_code=400,
+            detail="No translatable business data is available.",
+        )
+
+    # Translate all fields in one Gemini call
+    translated_entry = await asyncio.to_thread(
+        translate_entry,
+        entry=source_entry,
+        target_language=target_language,
+        source_language=source_language,
+    )
+
+    # Store the translated values in JSONB
+    for field in MULTILINGUAL_BUSINESS_FIELDS:
+        translated_value = translated_entry.get(field)
+
+        if translated_value is None:
+            continue
+
+        current_value = getattr(business, field, None) or {}
+
+        # Create a new dict so SQLAlchemy/JSONB detects the change
+        updated_value = dict(current_value)
+        updated_value[target_language] = translated_value
+
+        setattr(
+            business,
+            field,
+            updated_value,
+        )
+
+    await db.flush()
+
 
 @router.post(
     "/generate",
@@ -61,10 +195,9 @@ async def generate_report(
 
     req_lang = request.language.strip().lower()
     lang_code = language_codes[req_lang]
-    
+
     if not business:
         # Determine the correct JSONB key based on the request language
-        
 
         business = Business(
             owner_id=entrepreneur.user_id,
@@ -86,21 +219,26 @@ async def generate_report(
         )
         db.add(business)
         await db.flush()
-    else:
-        request.business_id = business.id
-        request.business_name = business.business_name.get("en","")
-        request.business_type = business.category.get("en","")
-        request.business_description = business.description.get("en","")
 
-        request.country = business.country.get("en","")
-        request.state = business.state.get("en","")
-        request.district = business.district.get("en","")
-        request.city = business.city.get("en","")
-        request.village = business.village.get("en","")
-        request.pincode = business.pincode
+        await ensure_business_language(
+            business=business,
+            target_language=lang_code,
+            db=db,
+        )
+        
+    request.business_id = business.id
+    request.business_name = business.business_name.get("en", "")
+    request.business_type = business.category.get("en", "")
+    request.business_description = business.description.get("en", "")
 
-        request.margin_capital = business.margin_capital
+    request.country = business.country.get("en", "")
+    request.state = business.state.get("en", "")
+    request.district = business.district.get("en", "")
+    request.city = business.city.get("en", "")
+    request.village = business.village.get("en", "")
+    request.pincode = business.pincode
 
+    request.margin_capital = business.margin_capital
 
     if force:
         analysis_ids_result = await db.execute(
@@ -129,7 +267,6 @@ async def generate_report(
             )
 
         await db.flush()
-
 
     latest_result = await db.execute(
         select(BusinessAnalysis)
@@ -207,7 +344,6 @@ async def generate_report(
                 report_markdown=existing_analysis.report_markdown,
                 raw_evidence=original_evidence,
             )
-
 
         translation_result = await db.execute(
             select(ReportTranslation).where(

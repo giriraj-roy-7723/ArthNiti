@@ -6,15 +6,16 @@ from src.schema.business import BusinessStatus
 
 
 class BusinessCreateRequest(BaseModel):
-    business_name: dict[str, str]
-    category: dict[str, str]
-    description: dict[str, str] | None = None
-    village: dict[str, str] | None = None
-    district: dict[str, str]
-    city: dict[str, str] | None = None
-    state: dict[str, str]
-    country: dict[str, str]
-    margin_capital: float = Field(gt=0)
+    business_name: str | None = None
+    category: str | None = None
+    description: str | None = None
+    village: str | None = None
+    district: str | None = None
+    city: str | None = None
+    state: str | None = None
+    country: str | None = None
+
+    margin_capital: float | None = Field(default=None, gt=0)
     pincode: str | None = None
     latitude: float | None = None
     longitude: float | None = None

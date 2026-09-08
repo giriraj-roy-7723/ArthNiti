@@ -211,5 +211,20 @@ class LoginRequest(BaseModel):
             raise ValueError("Password cannot be empty or whitespace") 
         return v
 
+from pydantic import BaseModel
 
-from pydantic import BaseModel, model_validator
+
+class UserUpdateRequest(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+
+    address: str | None = None
+    village: str | None = None
+    district: str | None = None
+    city: str | None = None
+    state: str | None = None
+    country: str | None = None
+
+    phone_number: str | None = None
+    pincode: str | None = None
+    profile_pic: str | None = None
