@@ -1,21 +1,40 @@
 from langchain_core.tools import tool
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schema.business import Business, BusinessStatus
 from src.schema.financial_analysis import FinancialAnalysis
+from src.schema.business_analysis import BusinessAnalysis
+from src.schema.report_translations import ReportTranslation
 from src.schema.business_report_chunk import BusinessReportChunk
+from src.schema.finance_translation import FinancialAnalysisTranslation
+from src.schema.business_profile import BusinessProfile
+from src.schema.business_profile_translation import BusinessProfileTranslation
 
 from src.controllers.report_service import generate_feasibility_report
 from src.controllers.business_report_persistence_service import save_business_analysis
 from src.controllers.finance_service import (
     generate_financial_plan,
     generate_ai_analysis,
+    create_financial_translation,
+    normalize_language,
 )
 from src.controllers.business_profile_service import process_profile_and_recommendations
 
 from src.services.scheme_embedding import generate_embedding
 from src.utils.report_utils import parse_report_sections, split_text_recursively
+
+language_codes = {
+    "english": "en",
+    "en": "en",
+    "eng": "en",
+    "bengali": "bn",
+    "beng": "bn",
+    "bn": "bn",
+    "hindi": "hi",
+    "hind": "hi",
+    "hi": "hi",
+}
 
 
 def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> list:
@@ -37,6 +56,8 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
         village: str = None,
         pincode: str = None,
         radius_km: float = 10.0,
+        language: str = "english",
+        force: bool = False,
     ) -> dict:
         """
         Generates the foundational Feasibility Report for the business.
@@ -55,8 +76,13 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
             village: Optional operating village.
             pincode: Optional postal code.
             radius_km: The market analysis radius (defaults to 10.0).
+            language: Target language for the report generation (default 'english').
+            force: If True, deletes existing report and generates a fresh one.
         """
         try:
+            req_lang = language.strip().lower()
+            lang_code = language_codes.get(req_lang, "en")
+
             # 1. Fetch or Create the Business Record
             result = await db.execute(
                 select(Business).where(
@@ -67,21 +93,21 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
             business = result.scalar_one_or_none()
 
             if not business:
-                # Wrap the agent's English strings into the JSONB schema structure
+                # Store multilingual data using the correct JSONB key structure based on target lang code
                 business = Business(
                     id=business_id,
                     owner_id=user_id,
-                    business_name={"en": business_name},
-                    category={"en": business_type},
+                    business_name={lang_code: business_name},
+                    category={lang_code: business_type},
                     margin_capital=margin_capital,
-                    description={"en": business_description}
+                    description={lang_code: business_description}
                     if business_description
                     else {},
-                    village={"en": village} if village else {},
-                    district={"en": district},
-                    city={"en": city} if city else {},
-                    state={"en": state},
-                    country={"en": country},
+                    village={lang_code: village} if village else {},
+                    district={lang_code: district},
+                    city={lang_code: city} if city else {},
+                    state={lang_code: state},
+                    country={lang_code: country},
                     pincode=pincode,
                     latitude=0.0,
                     longitude=0.0,
@@ -90,7 +116,34 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
                 db.add(business)
                 await db.flush()
 
-            # 2. Run the Orchestrator Pipeline (Agent background processes run in English)
+            if force:
+                analysis_ids_result = await db.execute(
+                    select(BusinessAnalysis.id).where(
+                        BusinessAnalysis.business_id == business_id
+                    )
+                )
+                analysis_ids = analysis_ids_result.scalars().all()
+
+                if analysis_ids:
+                    # Cascade delete translations, chunks, then analyses
+                    await db.execute(
+                        delete(ReportTranslation).where(
+                            ReportTranslation.report_id.in_(analysis_ids)
+                        )
+                    )
+                    await db.execute(
+                        delete(BusinessReportChunk).where(
+                            BusinessReportChunk.business_analysis_id.in_(analysis_ids)
+                        )
+                    )
+                    await db.execute(
+                        delete(BusinessAnalysis).where(
+                            BusinessAnalysis.id.in_(analysis_ids)
+                        )
+                    )
+                await db.flush()
+
+            # 2. Run the Orchestrator Pipeline
             report_result = generate_feasibility_report(
                 business_name=business_name,
                 business_type=business_type,
@@ -103,7 +156,7 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
                 pincode=pincode,
                 margin_capital=margin_capital,
                 radius_km=radius_km,
-                language="english",
+                language=req_lang,
             )
 
             # 3. Update Coordinates based on Demographic Resolution
@@ -126,6 +179,7 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
             await db.flush()
 
             # 5. Chunk and Vectorize the Report for RAG
+            # Always embed the canonical English text for consistency in vector searching
             markdown_text = report_result.get(
                 "original_report_markdown", report_result.get("report_markdown")
             )
@@ -161,7 +215,7 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
 
             return {
                 "status": "success",
-                "message": "Feasibility Report generated and indexed successfully.",
+                "message": f"Feasibility Report generated ({language}) and indexed successfully.",
                 "analysis_id": analysis.id,
                 "version": analysis.version,
             }
@@ -176,19 +230,47 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
         monthly_revenue: float,
         monthly_direct_costs: float,
         monthly_fixed_costs: float,
+        language: str = "en",
+        force: bool = False,
     ) -> dict:
         """
         Generates the Financial Plan and AI Financial Advisory for the business.
-        Call this tool ONLY AFTER the Feasibility Report exists, and when the user
-        provides their expected margin capital, monthly revenue, direct costs, and fixed costs.
+        Call this tool ONLY AFTER the Feasibility Report exists.
 
         Args:
             margin: The initial margin/own capital invested (must be > 0).
             monthly_revenue: Expected monthly sales revenue.
-            monthly_direct_costs: Expected monthly direct/variable costs (raw materials, utility usage).
+            monthly_direct_costs: Expected monthly direct/variable costs.
             monthly_fixed_costs: Expected monthly fixed costs (rent, salaries).
+            language: Target language code for translation (e.g. en, hi, bn).
+            force: If True, deletes existing financial plans and generates a fresh one.
         """
         try:
+            target_language = normalize_language(language)
+
+            if force:
+                analysis_ids_result = await db.execute(
+                    select(FinancialAnalysis.id).where(
+                        FinancialAnalysis.business_id == business_id
+                    )
+                )
+                analysis_ids = analysis_ids_result.scalars().all()
+
+                if analysis_ids:
+                    await db.execute(
+                        delete(FinancialAnalysisTranslation).where(
+                            FinancialAnalysisTranslation.financial_analysis_id.in_(
+                                analysis_ids
+                            )
+                        )
+                    )
+                    await db.execute(
+                        delete(FinancialAnalysis).where(
+                            FinancialAnalysis.id.in_(analysis_ids)
+                        )
+                    )
+                await db.flush()
+
             plan_result = await generate_financial_plan(
                 db=db,
                 business_id=business_id,
@@ -230,9 +312,25 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
             )
 
             db.add(financial_analysis)
-            await db.commit()
-            await db.refresh(financial_analysis)
+            await db.flush()
 
+            # Handle Translation immediately if required
+            if target_language != "en":
+                translation = await create_financial_translation(
+                    db=db,
+                    financial_analysis=financial_analysis,
+                    language=target_language,
+                )
+                await db.commit()
+                return {
+                    "status": "success",
+                    "message": f"Financial Plan and Advisory generated successfully (Translated to {target_language}).",
+                    "financial_analysis_id": financial_analysis.id,
+                    "translation_id": translation.id,
+                    "version": financial_analysis.version,
+                }
+
+            await db.commit()
             return {
                 "status": "success",
                 "message": "Financial Plan and Advisory generated and saved successfully.",
@@ -256,14 +354,14 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
         business_registration: bool = None,
         farmer_status: bool = None,
         land_ownership: bool = None,
+        language: str = "en",
+        force: bool = False,
+        limit: int = 10,
     ) -> dict:
         """
         Generates the Business Profile and recommends matched Government Schemes based on eligibility.
         Call this tool ONLY AFTER the Feasibility Report exists. Use this when the user wants
         to find out what subsidies or schemes they are eligible for.
-
-        All arguments are OPTIONAL. Ask the user for any details they are willing to provide
-        to get better matches, but you can run it even if some are missing.
 
         Args:
             age: Entrepreneur's age (18 to 100).
@@ -276,9 +374,34 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
             business_registration: True if formally registered, False otherwise.
             farmer_status: True if the user holds farmer status.
             land_ownership: True if the user owns the business land.
+            language: Target language code for translation.
+            force: If True, deletes existing business profile and regenerates.
+            limit: Number of top recommended schemes to retrieve.
         """
         try:
-            # Package only the provided non-None arguments to mimic model_dump(exclude_unset=True)
+            if force:
+                profile_result = await db.execute(
+                    select(BusinessProfile.id).where(
+                        BusinessProfile.business_id == business_id
+                    )
+                )
+                profile_ids = profile_result.scalars().all()
+
+                if profile_ids:
+                    await db.execute(
+                        delete(BusinessProfileTranslation).where(
+                            BusinessProfileTranslation.business_profile_id.in_(
+                                profile_ids
+                            )
+                        )
+                    )
+                    await db.execute(
+                        delete(BusinessProfile).where(
+                            BusinessProfile.id.in_(profile_ids)
+                        )
+                    )
+                await db.flush()
+
             eligibility_data = {
                 "age": age,
                 "gender": gender,
@@ -300,8 +423,8 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
                 db=db,
                 business_id=business_id,
                 eligibility_data=eligibility_data,
-                target_language="en",
-                limit=10,
+                target_language=language,
+                limit=limit,
             )
 
             return {
@@ -310,13 +433,12 @@ def get_generation_tools(db: AsyncSession, business_id: str, user_id: str) -> li
                 "analysis_id": result["analysis_id"],
                 "recommended_schemes_count": len(result["original_english_schemes"]),
                 "recommended_schemes": [
-                    {"name": s["name"], "similarity": s["similarity_score"]}
+                    {"name": s["name"], "similarity": s.get("similarity_score")}
                     for s in result["original_english_schemes"]
                 ],
             }
 
         except ValueError as exc:
-            # Usually triggered if Feasibility Analysis doesn't exist yet
             return {
                 "error": f"Prerequisite missing: {str(exc)}. Please ensure the Feasibility Report is generated first."
             }
