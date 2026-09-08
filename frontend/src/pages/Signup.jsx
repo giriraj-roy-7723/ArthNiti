@@ -6,7 +6,24 @@ import { api } from '../utils/api';
 import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 
 const Signup = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    role: 'enterpreneur',
+    phone_number: '',
+    address: '',
+    village: '',
+    district: '',
+    city: '',
+    state: '',
+    country: 'India',
+    pincode: '',
+    designation: '',
+    agency_type: 'sca',
+    agency_name: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -24,13 +41,19 @@ const Signup = () => {
     setError('');
 
     try {
-      const res = await api.post(`/auth/signup?language=${language}`, formData);
+      const res = await api.post(`/auth/signup?language=${encodeURIComponent(language)}`, formData);
       if (res.data.access_token) {
         login(res.data.access_token, res.data.user);
         navigate('/');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong during signup');
+      if (!err.response) {
+        setError('Unable to reach the backend. Start the API on port 8000 and try again.');
+      } else if (Array.isArray(err.response.data?.detail)) {
+        setError(err.response.data.detail.map((item) => item.msg).join(', '));
+      } else {
+        setError(err.response.data?.detail || 'Something went wrong during signup');
+      }
     } finally {
       setLoading(false);
     }
@@ -67,12 +90,27 @@ const Signup = () => {
               </div>
               <input
                 type="text"
-                name="name"
+                name="first_name"
                 required
-                value={formData.name}
+                value={formData.first_name}
                 onChange={handleChange}
                 className="w-full pl-12 pr-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"
-                placeholder="Full Name"
+                placeholder="First Name"
+              />
+            </div>
+
+            <div className="relative group/input">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-500 group-focus-within/input:text-blue-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                name="last_name"
+                required
+                value={formData.last_name}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"
+                placeholder="Last Name"
               />
             </div>
 
@@ -90,6 +128,79 @@ const Signup = () => {
                 placeholder="Email Address"
               />
             </div>
+
+            <div className="relative group/input">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-500 group-focus-within/input:text-blue-500 transition-colors" />
+              </div>
+              <input
+                type="tel"
+                name="phone_number"
+                required
+                value={formData.phone_number}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"
+                placeholder="Phone Number, e.g. +919876543210"
+              />
+            </div>
+
+            <select
+              name="role"
+              required
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+            >
+              <option value="enterpreneur">Entrepreneur</option>
+              <option value="buyer">Buyer</option>
+              <option value="government">Government Official</option>
+            </select>
+
+            {formData.role === 'government' && (
+              <>
+                <input
+                  type="text"
+                  name="designation"
+                  required
+                  value={formData.designation}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  placeholder="Designation"
+                />
+                <input
+                  type="text"
+                  name="agency_name"
+                  required
+                  value={formData.agency_name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  placeholder="Agency Name"
+                />
+                <select
+                  name="agency_type"
+                  required
+                  value={formData.agency_type}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                >
+                  <option value="sca">SCA</option>
+                  <option value="ca">CA</option>
+                </select>
+              </>
+            )}
+
+            {['address', 'village', 'district', 'city', 'state', 'country', 'pincode'].map((field) => (
+              <input
+                key={field}
+                type="text"
+                name={field}
+                required
+                value={formData[field]}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                placeholder={field === 'pincode' ? 'Pincode' : field.replace('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())}
+              />
+            ))}
 
             <div className="relative group/input">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

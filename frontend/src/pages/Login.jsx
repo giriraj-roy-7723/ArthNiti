@@ -24,13 +24,19 @@ const Login = () => {
     setError('');
 
     try {
-      const res = await api.post(`/auth/login?language=${language}`, formData);
+      const res = await api.post(`/auth/login?language=${encodeURIComponent(language)}`, formData);
       if (res.data.access_token) {
         login(res.data.access_token, res.data.user);
         navigate('/');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid email or password');
+      if (!err.response) {
+        setError('Unable to reach the backend. Start the API on port 8000 and try again.');
+      } else if (Array.isArray(err.response.data?.detail)) {
+        setError(err.response.data.detail.map((item) => item.msg).join(', '));
+      } else {
+        setError(err.response.data?.detail || 'Invalid email or password');
+      }
     } finally {
       setLoading(false);
     }
