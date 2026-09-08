@@ -1,7 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { Home, LogIn, UserPlus, LogOut, Settings, Globe } from 'lucide-react';
+import {
+  Home,
+  LogIn,
+  UserPlus,
+  LogOut,
+  Settings,
+  Globe,
+  BarChart3,
+  Calculator,
+  Landmark,
+  MessageCircle,
+} from 'lucide-react';
 
 const Sidebar = () => {
   const { language, toggleLanguage } = useLanguage();
@@ -52,10 +63,30 @@ const Sidebar = () => {
             </>
           ) : (
             <>
-               <Link to="/dashboard" className={getLinkClasses('/dashboard')}>
+              <Link to="/dashboard" className={getLinkClasses('/dashboard')}>
                 <Settings size={20} className={isActive('/dashboard') ? 'drop-shadow-md' : ''} />
                 <span className="font-semibold">Dashboard</span>
               </Link>
+              {user.role === 'enterpreneur' && (
+                <div className="space-y-2 border-l border-gray-800 pl-3">
+                  <Link to="/dashboard/business-analysis" className={getLinkClasses('/dashboard/business-analysis')}>
+                    <BarChart3 size={20} />
+                    <span className="font-semibold">Business Analysis</span>
+                  </Link>
+                  <Link to="/dashboard/finance-analyser" className={getLinkClasses('/dashboard/finance-analyser')}>
+                    <Calculator size={20} />
+                    <span className="font-semibold">Finance Analyser</span>
+                  </Link>
+                  <Link to="/dashboard/government-schemes" className={getLinkClasses('/dashboard/government-schemes')}>
+                    <Landmark size={20} />
+                    <span className="font-semibold">Government Schemes</span>
+                  </Link>
+                  <Link to="/dashboard/chatbot" className={getLinkClasses('/dashboard/chatbot')}>
+                    <MessageCircle size={20} />
+                    <span className="font-semibold">Chatbot</span>
+                  </Link>
+                </div>
+              )}
             </>
           )}
         </nav>

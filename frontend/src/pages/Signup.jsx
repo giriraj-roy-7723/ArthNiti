@@ -321,8 +321,7 @@ const Signup = () => {
 
       if (res.data.access_token) {
         login(res.data.access_token, res.data.user);
-
-        navigate("/");
+        navigate(res.data.user?.role === 'enterpreneur' ? '/dashboard/business-analysis' : '/');
       }
     } catch (err) {
       if (!err.response) {

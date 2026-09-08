@@ -3,6 +3,15 @@ import { getToken, setToken as setAuthToken, removeToken, isAuthenticated } from
 
 const AuthContext = createContext();
 
+const decodeTokenPayload = (token) => {
+  try {
+    const payload = token.split('.')[1];
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+  } catch {
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,20 +19,23 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is authenticated on initial load
     if (isAuthenticated()) {
-      // Decode token or fetch user info here if needed
-      // For now, we'll just set a generic user object to signify they are logged in
-      setUser({ loggedIn: true });
+      const storedUser = localStorage.getItem('user');
+      const tokenPayload = decodeTokenPayload(getToken());
+      setUser(storedUser ? JSON.parse(storedUser) : { ...tokenPayload, loggedIn: true });
     }
     setLoading(false);
   }, []);
 
   const login = (token, userData) => {
     setAuthToken(token);
-    setUser(userData || { loggedIn: true });
+    const nextUser = userData || { ...decodeTokenPayload(token), loggedIn: true };
+    localStorage.setItem('user', JSON.stringify(nextUser));
+    setUser(nextUser);
   };
 
   const logout = () => {
     removeToken();
+    localStorage.removeItem('user');
     setUser(null);
   };
 
