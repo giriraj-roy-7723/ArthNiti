@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.database import get_db
-from src.controllers.business_controller import create_business, get_business
+from src.controllers.business_controller import create_business, get_business, get_my_business_ids
 from src.middlewares.auth import verify_token
 from src.models.business_request import BusinessCreateRequest, BusinessResponse
 
@@ -22,6 +22,21 @@ async def create_business_route(
 ):
     # Added the 'language' parameter to match the updated controller
     return await create_business(data=data, owner_id=user_id, language=language, db=db)
+
+
+@router.get(
+    "/my",
+    response_model=list[str],
+    status_code=status.HTTP_200_OK,
+)
+async def get_my_business_ids_route(
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_my_business_ids(
+        user_id=user_id,
+        db=db,
+    )
 
 
 @router.get(

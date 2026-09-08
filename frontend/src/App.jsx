@@ -9,6 +9,7 @@ import BusinessAnalysis from './pages/BusinessAnalysis';
 import FinanceAnalyser from './pages/FinanceAnalyser';
 import GovernmentSchemes from './pages/GovernmentSchemes';
 import Chatbot from './pages/Chatbot';
+import MyBusinesses from "./pages/MyBusinesses";
 
 export default function App() {
   return (
@@ -21,10 +22,20 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/dashboard" element={<BusinessAnalysis />} />
-              <Route path="/dashboard/business-analysis" element={<BusinessAnalysis />} />
-              <Route path="/dashboard/finance-analyser" element={<FinanceAnalyser />} />
-              <Route path="/dashboard/government-schemes" element={<GovernmentSchemes />} />
+              <Route
+                path="/dashboard/business-analysis"
+                element={<BusinessAnalysis />}
+              />
+              <Route
+                path="/dashboard/finance-analyser"
+                element={<FinanceAnalyser />}
+              />
+              <Route
+                path="/dashboard/government-schemes"
+                element={<GovernmentSchemes />}
+              />
               <Route path="/dashboard/chatbot" element={<Chatbot />} />
+              <Route path="/businesses" element={<MyBusinesses />} />
             </Routes>
           </MainLayout>
         </LanguageProvider>

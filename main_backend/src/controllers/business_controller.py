@@ -47,7 +47,6 @@ def normalize_language(language: str) -> str:
 
     return lang_code
 
-
 def get_available_source_language(
     business: Business,
     target_language: str,
@@ -80,7 +79,6 @@ def get_available_source_language(
         return target_language
 
     return None
-
 
 async def ensure_business_language(
     business: Business,
@@ -166,7 +164,6 @@ async def ensure_business_language(
         )
 
     await db.flush()
-
 
 async def create_business(
     data: BusinessCreateRequest,
@@ -304,7 +301,6 @@ def get_business_source_language(
 
     return None
 
-
 async def get_business(
     business_id: str,
     language: str,
@@ -429,3 +425,18 @@ async def get_business(
         created_at=business.created_at,
         updated_at=business.updated_at,
     )
+
+async def get_my_business_ids(
+    user_id: str,
+    db: AsyncSession,
+) -> list[str]:
+
+    print("USER ID FROM TOKEN:", user_id)
+
+    result = await db.execute(select(Business).where(Business.owner_id == user_id))
+
+    businesses = result.scalars().all()
+
+    print("BUSINESSES FOUND:", businesses)
+
+    return [str(business.id) for business in businesses]

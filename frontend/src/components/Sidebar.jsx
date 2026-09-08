@@ -1,6 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
+import { Link, useLocation } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import {
   Home,
   LogIn,
@@ -8,11 +8,8 @@ import {
   LogOut,
   Settings,
   Globe,
-  BarChart3,
-  Calculator,
-  Landmark,
-  MessageCircle,
-} from 'lucide-react';
+  Building2,
+} from "lucide-react";
 
 const Sidebar = () => {
   const { language, toggleLanguage } = useLanguage();
@@ -23,54 +20,45 @@ const Sidebar = () => {
 
   const translations = {
     english: {
-      finance: 'Finance',
-      home: 'Home',
-      login: 'Login',
-      signup: 'Sign Up',
-      dashboard: 'Dashboard',
-      businessAnalysis: 'Business Analysis',
-      financeAnalyser: 'Finance Analyser',
-      governmentSchemes: 'Government Schemes',
-      chatbot: 'Chatbot',
-      language: 'Language',
-      english: 'English',
-      hindi: 'Hindi (हिंदी)',
-      bengali: 'Bengali (বাংলা)',
-      logout: 'Log Out',
+      finance: "Finance",
+      home: "Home",
+      login: "Login",
+      signup: "Sign Up",
+      dashboard: "Dashboard",
+      myBusinesses: "My Businesses",
+      language: "Language",
+      english: "English",
+      hindi: "Hindi (हिंदी)",
+      bengali: "Bengali (বাংলা)",
+      logout: "Log Out",
     },
 
     hindi: {
-      finance: 'वित्त',
-      home: 'होम',
-      login: 'लॉग इन',
-      signup: 'साइन अप',
-      dashboard: 'डैशबोर्ड',
-      businessAnalysis: 'व्यवसाय विश्लेषण',
-      financeAnalyser: 'वित्त विश्लेषक',
-      governmentSchemes: 'सरकारी योजनाएँ',
-      chatbot: 'चैटबॉट',
-      language: 'भाषा',
-      english: 'अंग्रेज़ी',
-      hindi: 'हिंदी (हिंदी)',
-      bengali: 'बंगाली (বাংলা)',
-      logout: 'लॉग आउट',
+      finance: "वित्त",
+      home: "होम",
+      login: "लॉग इन",
+      signup: "साइन अप",
+      dashboard: "डैशबोर्ड",
+      myBusinesses: "मेरे व्यवसाय",
+      language: "भाषा",
+      english: "अंग्रेज़ी",
+      hindi: "हिंदी (हिंदी)",
+      bengali: "बंगाली (বাংলা)",
+      logout: "लॉग आउट",
     },
 
     bengali: {
-      finance: 'অর্থ',
-      home: 'হোম',
-      login: 'লগইন',
-      signup: 'সাইন আপ',
-      dashboard: 'ড্যাশবোর্ড',
-      businessAnalysis: 'ব্যবসায়িক বিশ্লেষণ',
-      financeAnalyser: 'আর্থিক বিশ্লেষক',
-      governmentSchemes: 'সরকারি প্রকল্প',
-      chatbot: 'চ্যাটবট',
-      language: 'ভাষা',
-      english: 'ইংরেজি',
-      hindi: 'হিন্দি (हिंदी)',
-      bengali: 'বাংলা (বাংলা)',
-      logout: 'লগ আউট',
+      finance: "অর্থ",
+      home: "হোম",
+      login: "লগইন",
+      signup: "সাইন আপ",
+      dashboard: "ড্যাশবোর্ড",
+      myBusinesses: "আমার ব্যবসা",
+      language: "ভাষা",
+      english: "ইংরেজি",
+      hindi: "হিন্দি (हिंदी)",
+      bengali: "বাংলা (বাংলা)",
+      logout: "লগ আউট",
     },
   };
 
@@ -80,8 +68,8 @@ const Sidebar = () => {
   const getLinkClasses = (path) => {
     return `flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 transform preserve-3d ${
       isActive(path)
-        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)] translate-z-10 scale-105'
-        : 'text-gray-400 hover:bg-gray-800/80 hover:text-white hover:translate-x-2 hover:shadow-lg'
+        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)] translate-z-10 scale-105"
+        : "text-gray-400 hover:bg-gray-800/80 hover:text-white hover:translate-x-2 hover:shadow-lg"
     }`;
   };
 
@@ -89,7 +77,7 @@ const Sidebar = () => {
     <aside className="w-64 h-screen bg-gray-950/90 backdrop-blur-md border-r border-gray-800 flex flex-col justify-between flex-shrink-0 sticky top-0 shadow-[20px_0_50px_rgba(0,0,0,0.5)] z-50">
 
       {/* 3D Inner Edge Reflection */}
-      <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent pointer-events-none"></div>
+      <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent pointer-events-none" />
 
       <div className="p-6 relative z-10">
 
@@ -112,12 +100,13 @@ const Sidebar = () => {
           {/* Home */}
           <Link
             to="/"
-            className={getLinkClasses('/')}
+            className={getLinkClasses("/")}
           >
             <Home
               size={20}
-              className={isActive('/') ? 'drop-shadow-md' : ''}
+              className={isActive("/") ? "drop-shadow-md" : ""}
             />
+
             <span className="font-semibold">
               {t.home}
             </span>
@@ -128,12 +117,13 @@ const Sidebar = () => {
               {/* Login */}
               <Link
                 to="/login"
-                className={getLinkClasses('/login')}
+                className={getLinkClasses("/login")}
               >
                 <LogIn
                   size={20}
-                  className={isActive('/login') ? 'drop-shadow-md' : ''}
+                  className={isActive("/login") ? "drop-shadow-md" : ""}
                 />
+
                 <span className="font-semibold">
                   {t.login}
                 </span>
@@ -142,12 +132,13 @@ const Sidebar = () => {
               {/* Sign Up */}
               <Link
                 to="/signup"
-                className={getLinkClasses('/signup')}
+                className={getLinkClasses("/signup")}
               >
                 <UserPlus
                   size={20}
-                  className={isActive('/signup') ? 'drop-shadow-md' : ''}
+                  className={isActive("/signup") ? "drop-shadow-md" : ""}
                 />
+
                 <span className="font-semibold">
                   {t.signup}
                 </span>
@@ -158,73 +149,41 @@ const Sidebar = () => {
               {/* Dashboard */}
               <Link
                 to="/dashboard"
-                className={getLinkClasses('/dashboard')}
+                className={getLinkClasses("/dashboard")}
               >
                 <Settings
                   size={20}
-                  className={isActive('/dashboard') ? 'drop-shadow-md' : ''}
+                  className={
+                    isActive("/dashboard")
+                      ? "drop-shadow-md"
+                      : ""
+                  }
                 />
+
                 <span className="font-semibold">
                   {t.dashboard}
                 </span>
               </Link>
 
-              {user.role === 'enterpreneur' && (
-                <div className="space-y-2 border-l border-gray-800 pl-3">
+              {/* My Businesses */}
+              {user.role === "enterpreneur" && (
+                <Link
+                  to="/businesses"
+                  className={getLinkClasses("/businesses")}
+                >
+                  <Building2
+                    size={20}
+                    className={
+                      isActive("/businesses")
+                        ? "drop-shadow-md"
+                        : ""
+                    }
+                  />
 
-                  {/* Business Analysis */}
-                  <Link
-                    to="/dashboard/business-analysis"
-                    className={getLinkClasses(
-                      '/dashboard/business-analysis'
-                    )}
-                  >
-                    <BarChart3 size={20} />
-                    <span className="font-semibold">
-                      {t.businessAnalysis}
-                    </span>
-                  </Link>
-
-                  {/* Finance Analyser */}
-                  <Link
-                    to="/dashboard/finance-analyser"
-                    className={getLinkClasses(
-                      '/dashboard/finance-analyser'
-                    )}
-                  >
-                    <Calculator size={20} />
-                    <span className="font-semibold">
-                      {t.financeAnalyser}
-                    </span>
-                  </Link>
-
-                  {/* Government Schemes */}
-                  <Link
-                    to="/dashboard/government-schemes"
-                    className={getLinkClasses(
-                      '/dashboard/government-schemes'
-                    )}
-                  >
-                    <Landmark size={20} />
-                    <span className="font-semibold">
-                      {t.governmentSchemes}
-                    </span>
-                  </Link>
-
-                  {/* Chatbot */}
-                  <Link
-                    to="/dashboard/chatbot"
-                    className={getLinkClasses(
-                      '/dashboard/chatbot'
-                    )}
-                  >
-                    <MessageCircle size={20} />
-                    <span className="font-semibold">
-                      {t.chatbot}
-                    </span>
-                  </Link>
-
-                </div>
+                  <span className="font-semibold">
+                    {t.myBusinesses}
+                  </span>
+                </Link>
               )}
             </>
           )}
@@ -246,11 +205,11 @@ const Sidebar = () => {
 
             {/* English */}
             <button
-              onClick={() => toggleLanguage('english')}
+              onClick={() => toggleLanguage("english")}
               className={`text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                language === 'english'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_5px_15px_rgba(37,99,235,0.3)] scale-105'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white hover:translate-x-1'
+                language === "english"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_5px_15px_rgba(37,99,235,0.3)] scale-105"
+                  : "text-gray-400 hover:bg-gray-800 hover:text-white hover:translate-x-1"
               }`}
             >
               {t.english}
@@ -258,11 +217,11 @@ const Sidebar = () => {
 
             {/* Hindi */}
             <button
-              onClick={() => toggleLanguage('hindi')}
+              onClick={() => toggleLanguage("hindi")}
               className={`text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                language === 'hindi'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_5px_15px_rgba(37,99,235,0.3)] scale-105'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white hover:translate-x-1'
+                language === "hindi"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_5px_15px_rgba(37,99,235,0.3)] scale-105"
+                  : "text-gray-400 hover:bg-gray-800 hover:text-white hover:translate-x-1"
               }`}
             >
               {t.hindi}
@@ -270,11 +229,11 @@ const Sidebar = () => {
 
             {/* Bengali */}
             <button
-              onClick={() => toggleLanguage('bengali')}
+              onClick={() => toggleLanguage("bengali")}
               className={`text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                language === 'bengali'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_5px_15px_rgba(37,99,235,0.3)] scale-105'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white hover:translate-x-1'
+                language === "bengali"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_5px_15px_rgba(37,99,235,0.3)] scale-105"
+                  : "text-gray-400 hover:bg-gray-800 hover:text-white hover:translate-x-1"
               }`}
             >
               {t.bengali}
@@ -290,7 +249,10 @@ const Sidebar = () => {
             className="flex items-center justify-center w-full space-x-2 px-4 py-3 rounded-xl bg-red-500/10 text-red-500 hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 hover:text-white transition-all duration-300 font-bold border border-red-500/20 hover:border-transparent hover:shadow-[0_10px_20px_rgba(239,68,68,0.3)] hover:-translate-y-1 transform"
           >
             <LogOut size={20} />
-            <span>{t.logout}</span>
+
+            <span>
+              {t.logout}
+            </span>
           </button>
         )}
 
