@@ -1,18 +1,65 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
-import { api } from '../utils/api';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
+import { api } from "../utils/api";
+import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { language } = useLanguage();
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const translations = {
+    english: {
+      welcome: "Welcome Back",
+      subtitle: "Sign in to continue to Finance Assistant",
+      networkErr:
+        "Unable to reach the backend. Start the API on port 8000 and try again.",
+      invalidErr: "Invalid email or password",
+      email: "Email Address",
+      password: "Password",
+      remember: "Remember me",
+      forgot: "Forgot your password?",
+      signIn: "Sign In",
+      noAccount: "Don't have an account? ",
+      signUp: "Sign Up",
+    },
+    hindi: {
+      welcome: "वापसी पर स्वागत है",
+      subtitle: "फाइनेंस असिस्टेंट में जारी रखने के लिए साइन इन करें",
+      networkErr:
+        "बैकएंड तक पहुँचने में असमर्थ। पोर्ट 8000 पर API शुरू करें और पुनः प्रयास करें।",
+      invalidErr: "अमान्य ईमेल या पासवर्ड",
+      email: "ईमेल पता",
+      password: "पासवर्ड",
+      remember: "मुझे याद रखें",
+      forgot: "क्या आप अपना पासवर्ड भूल गए?",
+      signIn: "साइन इन करें",
+      noAccount: "क्या आपके पास खाता नहीं है? ",
+      signUp: "साइन अप करें",
+    },
+    bengali: {
+      welcome: "স্বাগতম",
+      subtitle: "ফাইন্যান্স অ্যাসিস্ট্যান্ট-এ চালিয়ে যেতে সাইন ইন করুন",
+      networkErr:
+        "ব্যাকএন্ডে পৌঁছাতে অক্ষম। পোর্ট 8000-এ API চালু করুন এবং আবার চেষ্টা করুন।",
+      invalidErr: "ভুল ইমেল বা পাসওয়ার্ড",
+      email: "ইমেল ঠিকানা",
+      password: "পাসওয়ার্ড",
+      remember: "আমাকে মনে রাখুন",
+      forgot: "আপনার পাসওয়ার্ড ভুলে গেছেন?",
+      signIn: "সাইন ইন করুন",
+      noAccount: "কোনো অ্যাকাউন্ট নেই? ",
+      signUp: "সাইন আপ করুন",
+    },
+  };
+
+  const t = translations[language] || translations.english;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -21,21 +68,30 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const res = await api.post(`/auth/login?language=${encodeURIComponent(language)}`, formData);
+      const res = await api.post(
+        `/auth/login?language=${encodeURIComponent(language)}`,
+        formData,
+      );
       if (res.data.access_token) {
         login(res.data.access_token, res.data.user);
-        navigate(res.data.user?.role === 'enterpreneur' ? '/dashboard/business-analysis' : '/');
+        navigate(
+          res.data.user?.role === "enterpreneur"
+            ? "/dashboard/business-analysis"
+            : "/",
+        );
       }
     } catch (err) {
       if (!err.response) {
-        setError('Unable to reach the backend. Start the API on port 8000 and try again.');
+        setError(t.networkErr);
       } else if (Array.isArray(err.response.data?.detail)) {
-        setError(err.response.data.detail.map((item) => item.msg).join(', '));
+        // Validation errors returned from the API backend
+        setError(err.response.data.detail.map((item) => item.msg).join(", "));
       } else {
-        setError(err.response.data?.detail || 'Invalid email or password');
+        // Fallback or specific backend detail error
+        setError(err.response.data?.detail || t.invalidErr);
       }
     } finally {
       setLoading(false);
@@ -47,17 +103,17 @@ const Login = () => {
       <div className="w-full max-w-md relative group">
         {/* 3D Glow Effect */}
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur-md opacity-30 group-hover:opacity-60 transition duration-500"></div>
-        
+
         {/* 3D Card Container */}
         <div className="relative transform transition-all duration-500 hover:rotate-y-6 hover:-rotate-x-6 hover:scale-105 preserve-3d bg-gray-900 border border-gray-700/50 p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl">
           {/* Top light reflection */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl pointer-events-none border-t border-l border-white/10"></div>
-          
+
           <div className="mb-8 text-center transform translate-z-10">
             <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white via-blue-100 to-gray-400 drop-shadow-sm mb-2">
-              Welcome Back
+              {t.welcome}
             </h2>
-            <p className="text-gray-400 text-sm">Sign in to continue to Finance Assistant</p>
+            <p className="text-gray-400 text-sm">{t.subtitle}</p>
           </div>
 
           {error && (
@@ -66,7 +122,10 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5 transform translate-z-6">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-5 transform translate-z-6"
+          >
             <div className="relative group/input">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Mail className="h-5 w-5 text-gray-500 group-focus-within/input:text-blue-500 transition-colors" />
@@ -78,7 +137,7 @@ const Login = () => {
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full pl-12 pr-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"
-                placeholder="Email Address"
+                placeholder={t.email}
               />
             </div>
 
@@ -93,7 +152,7 @@ const Login = () => {
                 value={formData.password}
                 onChange={handleChange}
                 className="w-full pl-12 pr-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"
-                placeholder="Password"
+                placeholder={t.password}
               />
             </div>
 
@@ -105,14 +164,20 @@ const Login = () => {
                   type="checkbox"
                   className="h-4 w-4 rounded border-gray-700 bg-gray-950 text-blue-600 focus:ring-blue-600 shadow-inner"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
-                  Remember me
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-400"
+                >
+                  {t.remember}
                 </label>
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-400 hover:text-blue-300 transition-colors">
-                  Forgot your password?
+                <a
+                  href="#"
+                  className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  {t.forgot}
                 </a>
               </div>
             </div>
@@ -126,7 +191,7 @@ const Login = () => {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>{t.signIn}</span>
                   <ArrowRight className="h-5 w-5" />
                 </>
               )}
@@ -134,9 +199,12 @@ const Login = () => {
           </form>
 
           <div className="mt-8 text-center text-sm text-gray-400 transform translate-z-6">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-blue-400 hover:text-blue-300 font-bold transition-colors">
-              Sign Up
+            {t.noAccount}
+            <Link
+              to="/signup"
+              className="text-blue-400 hover:text-blue-300 font-bold transition-colors"
+            >
+              {t.signUp}
             </Link>
           </div>
         </div>

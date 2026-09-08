@@ -197,7 +197,7 @@ const Signup = () => {
     last_name: "",
     email: "",
     password: "",
-    role: "enterpreneur",
+    role: "enterpreneur", // internal value stays constant
 
     phone_number: "",
     country_code: "+91",
@@ -222,6 +222,192 @@ const Signup = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // TRANSLATIONS
+  const translations = {
+    english: {
+      title: "Create Account",
+      subtitle: "Join us and start your journey",
+      networkErr:
+        "Unable to reach the backend. Start the API on port 8000 and try again.",
+      signupErr: "Something went wrong during signup",
+      creatingBtn: "Creating Account...",
+      createBtn: "Create Account",
+      terms: "By creating an account, you agree to our terms and conditions.",
+      haveAccount: "Already have an account? ",
+      signIn: "Sign In",
+      sec1Title: "Personal Information",
+      sec1Desc: "Enter your basic account details",
+      firstName: "First Name",
+      firstPlaceholder: "Enter your first name",
+      lastName: "Last Name",
+      lastPlaceholder: "Enter your last name",
+      email: "Email Address",
+      emailPlaceholder: "you@example.com",
+      password: "Password",
+      passPlaceholder: "Create a strong password",
+      sec2Title: "Account Type",
+      sec2Desc: "Select how you will use the platform",
+      roleEnt: "Entrepreneur",
+      roleEntDesc: "Start and manage businesses",
+      roleBuyer: "Buyer",
+      roleBuyerDesc: "Explore and purchase opportunities",
+      roleGov: "Government",
+      roleGovDesc: "Manage government activities",
+      sec3Title: "Contact Information",
+      sec3Desc: "Provide a phone number where you can be reached",
+      countryCode: "Country Code",
+      phone: "Phone Number",
+      phonePlaceholder: "Enter your phone number",
+      sec4Title: "Government Information",
+      sec4Desc: "Provide your official organization details",
+      designation: "Designation",
+      desigPlaceholder: "e.g. District Officer",
+      agencyName: "Agency Name",
+      agencyPlaceholder: "Enter agency / department name",
+      agencyType: "Agency Type",
+      sec5Title: "Location & Address",
+      sec5Desc: "Tell us where you are located",
+      country: "Country",
+      selectCountry: "Select country",
+      state: "State / Province",
+      statePlace1: "Select or type state",
+      statePlace2: "Enter state / province",
+      district: "District",
+      distPlaceholder: "Enter district",
+      city: "City",
+      cityPlace1: "Select or type city",
+      cityPlace2: "Enter city",
+      village: "Village / Locality",
+      villPlaceholder: "Enter village or locality",
+      pincode: "Postal / ZIP Code",
+      pinPlaceholder: "Enter postal / ZIP code",
+      address: "Full Address",
+      addrPlaceholder: "House number, street, area, landmark...",
+    },
+    hindi: {
+      title: "खाता बनाएं",
+      subtitle: "हमसे जुड़ें और अपनी यात्रा शुरू करें",
+      networkErr:
+        "बैकएंड तक पहुँचने में असमर्थ। पोर्ट 8000 पर API शुरू करें और पुनः प्रयास करें।",
+      signupErr: "साइनअप के दौरान कुछ गलत हो गया",
+      creatingBtn: "खाता बनाया जा रहा है...",
+      createBtn: "खाता बनाएं",
+      terms: "खाता बनाकर, आप हमारी नियमों और शर्तों से सहमत होते हैं।",
+      haveAccount: "क्या आपके पास पहले से खाता है? ",
+      signIn: "साइन इन करें",
+      sec1Title: "व्यक्तिगत जानकारी",
+      sec1Desc: "अपना मूल खाता विवरण दर्ज करें",
+      firstName: "पहला नाम",
+      firstPlaceholder: "अपना पहला नाम दर्ज करें",
+      lastName: "अंतिम नाम",
+      lastPlaceholder: "अपना अंतिम नाम दर्ज करें",
+      email: "ईमेल पता",
+      emailPlaceholder: "you@example.com",
+      password: "पासवर्ड",
+      passPlaceholder: "एक मजबूत पासवर्ड बनाएं",
+      sec2Title: "खाता प्रकार",
+      sec2Desc: "चुनें कि आप प्लेटफ़ॉर्म का उपयोग कैसे करेंगे",
+      roleEnt: "उद्यमी",
+      roleEntDesc: "व्यवसाय शुरू करें और प्रबंधित करें",
+      roleBuyer: "खरीदार",
+      roleBuyerDesc: "अवसर खोजें और खरीदें",
+      roleGov: "सरकार",
+      roleGovDesc: "सरकारी गतिविधियों का प्रबंधन करें",
+      sec3Title: "संपर्क जानकारी",
+      sec3Desc: "एक फ़ोन नंबर प्रदान करें जहाँ आपसे संपर्क किया जा सके",
+      countryCode: "कंट्री कोड",
+      phone: "फ़ोन नंबर",
+      phonePlaceholder: "अपना फ़ोन नंबर दर्ज करें",
+      sec4Title: "सरकारी जानकारी",
+      sec4Desc: "अपने आधिकारिक संगठन का विवरण प्रदान करें",
+      designation: "पदनाम",
+      desigPlaceholder: "उदा. जिला अधिकारी",
+      agencyName: "एजेंसी का नाम",
+      agencyPlaceholder: "एजेंसी / विभाग का नाम दर्ज करें",
+      agencyType: "एजेंसी का प्रकार",
+      sec5Title: "स्थान और पता",
+      sec5Desc: "हमें बताएं कि आप कहां स्थित हैं",
+      country: "देश",
+      selectCountry: "देश चुनें",
+      state: "राज्य / प्रांत",
+      statePlace1: "राज्य चुनें या टाइप करें",
+      statePlace2: "राज्य / प्रांत दर्ज करें",
+      district: "ज़िला",
+      distPlaceholder: "ज़िला दर्ज करें",
+      city: "शहर",
+      cityPlace1: "शहर चुनें या टाइप करें",
+      cityPlace2: "शहर दर्ज करें",
+      village: "गांव / मोहल्ला",
+      villPlaceholder: "गांव या मोहल्ला दर्ज करें",
+      pincode: "पिन कोड",
+      pinPlaceholder: "पिन कोड दर्ज करें",
+      address: "पूरा पता",
+      addrPlaceholder: "मकान नंबर, सड़क, क्षेत्र, लैंडमार्क...",
+    },
+    bengali: {
+      title: "অ্যাকাউন্ট তৈরি করুন",
+      subtitle: "আমাদের সাথে যোগ দিন এবং আপনার যাত্রা শুরু করুন",
+      networkErr:
+        "ব্যাকএন্ডে পৌঁছাতে অক্ষম। পোর্ট 8000-এ API চালু করুন এবং আবার চেষ্টা করুন।",
+      signupErr: "সাইনআপের সময় কিছু ভুল হয়েছে",
+      creatingBtn: "অ্যাকাউন্ট তৈরি করা হচ্ছে...",
+      createBtn: "অ্যাকাউন্ট তৈরি করুন",
+      terms: "অ্যাকাউন্ট তৈরি করে, আপনি আমাদের শর্তাবলীতে সম্মত হচ্ছেন।",
+      haveAccount: "ইতোমধ্যে একটি অ্যাকাউন্ট আছে? ",
+      signIn: "সাইন ইন করুন",
+      sec1Title: "ব্যক্তিগত তথ্য",
+      sec1Desc: "আপনার সাধারণ অ্যাকাউন্টের বিবরণ লিখুন",
+      firstName: "নামের প্রথমাংশ",
+      firstPlaceholder: "আপনার নামের প্রথমাংশ লিখুন",
+      lastName: "নামের শেষাংশ",
+      lastPlaceholder: "আপনার নামের শেষাংশ লিখুন",
+      email: "ইমেল ঠিকানা",
+      emailPlaceholder: "you@example.com",
+      password: "পাসওয়ার্ড",
+      passPlaceholder: "একটি শক্তিশালী পাসওয়ার্ড তৈরি করুন",
+      sec2Title: "অ্যাকাউন্টের ধরন",
+      sec2Desc: "আপনি কীভাবে প্ল্যাটফর্মটি ব্যবহার করবেন তা নির্বাচন করুন",
+      roleEnt: "উদ্যোক্তা",
+      roleEntDesc: "ব্যবসা শুরু এবং পরিচালনা করুন",
+      roleBuyer: "ক্রেতা",
+      roleBuyerDesc: "সুযোগ অন্বেষণ করুন এবং কিনুন",
+      roleGov: "সরকার",
+      roleGovDesc: "সরকারি কার্যক্রম পরিচালনা করুন",
+      sec3Title: "যোগাযোগের তথ্য",
+      sec3Desc: "একটি ফোন নম্বর দিন যেখানে আপনার সাথে যোগাযোগ করা যেতে পারে",
+      countryCode: "কান্ট্রি কোড",
+      phone: "ফোন নম্বর",
+      phonePlaceholder: "আপনার ফোন নম্বর লিখুন",
+      sec4Title: "সরকারি তথ্য",
+      sec4Desc: "আপনার অফিসিয়াল প্রতিষ্ঠানের বিবরণ প্রদান করুন",
+      designation: "পদবী",
+      desigPlaceholder: "উদাঃ জেলা কর্মকর্তা",
+      agencyName: "সংস্থার নাম",
+      agencyPlaceholder: "সংস্থা / বিভাগের নাম লিখুন",
+      agencyType: "সংস্থার ধরন",
+      sec5Title: "অবস্থান ও ঠিকানা",
+      sec5Desc: "আপনি কোথায় অবস্থিত তা আমাদের জানান",
+      country: "দেশ",
+      selectCountry: "দেশ নির্বাচন করুন",
+      state: "রাজ্য / প্রদেশ",
+      statePlace1: "রাজ্য নির্বাচন করুন বা টাইপ করুন",
+      statePlace2: "রাজ্য / প্রদেশ লিখুন",
+      district: "জেলা",
+      distPlaceholder: "জেলা লিখুন",
+      city: "শহর",
+      cityPlace1: "শহর নির্বাচন করুন বা টাইপ করুন",
+      cityPlace2: "শহর লিখুন",
+      village: "গ্রাম / এলাকা",
+      villPlaceholder: "গ্রাম বা এলাকা লিখুন",
+      pincode: "পিন কোড",
+      pinPlaceholder: "পিন কোড লিখুন",
+      address: "সম্পূর্ণ ঠিকানা",
+      addrPlaceholder: "বাড়ি নম্বর, রাস্তা, এলাকা, ল্যান্ডমার্ক...",
+    },
+  };
+
+  const t = translations[language] || translations.english;
+
   const countries = useMemo(() => {
     return Country.getAllCountries();
   }, []);
@@ -234,7 +420,6 @@ const Signup = () => {
     if (!selectedCountry?.isoCode) {
       return [];
     }
-
     return State.getStatesOfCountry(selectedCountry.isoCode);
   }, [selectedCountry]);
 
@@ -246,7 +431,6 @@ const Signup = () => {
     if (!selectedCountry?.isoCode || !selectedState?.isoCode) {
       return [];
     }
-
     return City.getCitiesOfState(
       selectedCountry.isoCode,
       selectedState.isoCode,
@@ -272,7 +456,6 @@ const Signup = () => {
 
   const handleCountryChange = (e) => {
     const countryName = e.target.value;
-
     const country = countries.find((item) => item.name === countryName);
 
     setFormData((prev) => ({
@@ -321,19 +504,15 @@ const Signup = () => {
 
       if (res.data.access_token) {
         login(res.data.access_token, res.data.user);
-        navigate(res.data.user?.role === 'enterpreneur' ? '/dashboard/business-analysis' : '/');
+        navigate("/dashboard");
       }
     } catch (err) {
       if (!err.response) {
-        setError(
-          "Unable to reach the backend. Start the API on port 8000 and try again.",
-        );
+        setError(t.networkErr);
       } else if (Array.isArray(err.response.data?.detail)) {
         setError(err.response.data.detail.map((item) => item.msg).join(", "));
       } else {
-        setError(
-          err.response.data?.detail || "Something went wrong during signup",
-        );
+        setError(err.response.data?.detail || t.signupErr);
       }
     } finally {
       setLoading(false);
@@ -353,10 +532,10 @@ const Signup = () => {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-bold text-white">
-            Create Account
+            {t.title}
           </h1>
 
-          <p className="text-gray-400 mt-2">Join us and start your journey</p>
+          <p className="text-gray-400 mt-2">{t.subtitle}</p>
         </div>
 
         <div className="relative">
@@ -374,21 +553,21 @@ const Signup = () => {
 
               <form onSubmit={handleSubmit}>
                 {/* ====================================================== */}
-                {/* PERSONAL INFORMATION                                    */}
+                {/* PERSONAL INFORMATION                                   */}
                 {/* ====================================================== */}
 
                 <section className="pb-8 border-b border-gray-800">
                   <SectionHeader
                     icon={User}
-                    title="Personal Information"
-                    description="Enter your basic account details"
+                    title={t.sec1Title}
+                    description={t.sec1Desc}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <InputField
                       name="first_name"
-                      label="First Name"
-                      placeholder="Enter your first name"
+                      label={t.firstName}
+                      placeholder={t.firstPlaceholder}
                       icon={User}
                       value={formData.first_name}
                       onChange={handleChange}
@@ -396,8 +575,8 @@ const Signup = () => {
 
                     <InputField
                       name="last_name"
-                      label="Last Name"
-                      placeholder="Enter your last name"
+                      label={t.lastName}
+                      placeholder={t.lastPlaceholder}
                       icon={User}
                       value={formData.last_name}
                       onChange={handleChange}
@@ -405,8 +584,8 @@ const Signup = () => {
 
                     <InputField
                       name="email"
-                      label="Email Address"
-                      placeholder="you@example.com"
+                      label={t.email}
+                      placeholder={t.emailPlaceholder}
                       type="email"
                       icon={Mail}
                       value={formData.email}
@@ -415,8 +594,8 @@ const Signup = () => {
 
                     <InputField
                       name="password"
-                      label="Password"
-                      placeholder="Create a strong password"
+                      label={t.password}
+                      placeholder={t.passPlaceholder}
                       type="password"
                       icon={Lock}
                       value={formData.password}
@@ -426,32 +605,32 @@ const Signup = () => {
                 </section>
 
                 {/* ====================================================== */}
-                {/* ACCOUNT TYPE                                            */}
+                {/* ACCOUNT TYPE                                           */}
                 {/* ====================================================== */}
 
                 <section className="py-8 border-b border-gray-800">
                   <SectionHeader
                     icon={BriefcaseBusiness}
-                    title="Account Type"
-                    description="Select how you will use the platform"
+                    title={t.sec2Title}
+                    description={t.sec2Desc}
                   />
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
                       {
                         value: "enterpreneur",
-                        title: "Entrepreneur",
-                        description: "Start and manage businesses",
+                        title: t.roleEnt,
+                        description: t.roleEntDesc,
                       },
                       {
                         value: "buyer",
-                        title: "Buyer",
-                        description: "Explore and purchase opportunities",
+                        title: t.roleBuyer,
+                        description: t.roleBuyerDesc,
                       },
                       {
                         value: "government",
-                        title: "Government",
-                        description: "Manage government activities",
+                        title: t.roleGov,
+                        description: t.roleGovDesc,
                       },
                     ].map((role) => (
                       <label
@@ -518,8 +697,8 @@ const Signup = () => {
                 <section className="py-8 border-b border-gray-800">
                   <SectionHeader
                     icon={Phone}
-                    title="Contact Information"
-                    description="Provide a phone number where you can be reached"
+                    title={t.sec3Title}
+                    description={t.sec3Desc}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -528,7 +707,7 @@ const Signup = () => {
                         htmlFor="country_code"
                         className="block text-sm font-medium text-gray-300 mb-2"
                       >
-                        Country Code
+                        {t.countryCode}
                         <span className="text-red-400 ml-1">*</span>
                       </label>
 
@@ -573,8 +752,8 @@ const Signup = () => {
                     <div className="md:col-span-3">
                       <InputField
                         name="phone_number"
-                        label="Phone Number"
-                        placeholder="Enter your phone number"
+                        label={t.phone}
+                        placeholder={t.phonePlaceholder}
                         type="tel"
                         icon={Phone}
                         value={formData.phone_number}
@@ -592,15 +771,15 @@ const Signup = () => {
                   <section className="py-8 border-b border-gray-800">
                     <SectionHeader
                       icon={Building2}
-                      title="Government Information"
-                      description="Provide your official organization details"
+                      title={t.sec4Title}
+                      description={t.sec4Desc}
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <InputField
                         name="designation"
-                        label="Designation"
-                        placeholder="e.g. District Officer"
+                        label={t.designation}
+                        placeholder={t.desigPlaceholder}
                         icon={BriefcaseBusiness}
                         value={formData.designation}
                         onChange={handleChange}
@@ -608,8 +787,8 @@ const Signup = () => {
 
                       <InputField
                         name="agency_name"
-                        label="Agency Name"
-                        placeholder="Enter agency / department name"
+                        label={t.agencyName}
+                        placeholder={t.agencyPlaceholder}
                         icon={Building2}
                         value={formData.agency_name}
                         onChange={handleChange}
@@ -617,7 +796,7 @@ const Signup = () => {
 
                       <SelectField
                         name="agency_type"
-                        label="Agency Type"
+                        label={t.agencyType}
                         value={formData.agency_type}
                         onChange={handleChange}
                         icon={Building2}
@@ -637,28 +816,28 @@ const Signup = () => {
                 )}
 
                 {/* ====================================================== */}
-                {/* LOCATION                                                */}
+                {/* LOCATION                                               */}
                 {/* ====================================================== */}
 
                 <section className="py-8">
                   <SectionHeader
                     icon={MapPin}
-                    title="Location & Address"
-                    description="Tell us where you are located"
+                    title={t.sec5Title}
+                    description={t.sec5Desc}
                   />
 
                   <div className="space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <SelectField
                         name="country"
-                        label="Country"
+                        label={t.country}
                         value={formData.country}
                         onChange={handleCountryChange}
                         icon={Globe2}
                         options={[
                           {
                             value: "",
-                            label: "Select country",
+                            label: t.selectCountry,
                           },
                           ...countries.map((country) => ({
                             value: country.name,
@@ -672,7 +851,7 @@ const Signup = () => {
                           htmlFor="state"
                           className="block text-sm font-medium text-gray-300 mb-2"
                         >
-                          State / Province
+                          {t.state}
                           <span className="text-red-400 ml-1">*</span>
                         </label>
 
@@ -687,9 +866,7 @@ const Signup = () => {
                             value={formData.state}
                             onChange={handleStateChange}
                             placeholder={
-                              states.length
-                                ? "Select or type state"
-                                : "Enter state / province"
+                              states.length ? t.statePlace1 : t.statePlace2
                             }
                             className="
                               w-full
@@ -724,8 +901,8 @@ const Signup = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <InputField
                         name="district"
-                        label="District"
-                        placeholder="Enter district"
+                        label={t.district}
+                        placeholder={t.distPlaceholder}
                         icon={MapPin}
                         value={formData.district}
                         onChange={handleChange}
@@ -736,7 +913,7 @@ const Signup = () => {
                           htmlFor="city"
                           className="block text-sm font-medium text-gray-300 mb-2"
                         >
-                          City
+                          {t.city}
                           <span className="text-red-400 ml-1">*</span>
                         </label>
 
@@ -751,9 +928,7 @@ const Signup = () => {
                             value={formData.city}
                             onChange={handleChange}
                             placeholder={
-                              cities.length
-                                ? "Select or type city"
-                                : "Enter city"
+                              cities.length ? t.cityPlace1 : t.cityPlace2
                             }
                             className="
                               w-full
@@ -788,8 +963,8 @@ const Signup = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <InputField
                         name="village"
-                        label="Village / Locality"
-                        placeholder="Enter village or locality"
+                        label={t.village}
+                        placeholder={t.villPlaceholder}
                         icon={Home}
                         value={formData.village}
                         onChange={handleChange}
@@ -797,8 +972,8 @@ const Signup = () => {
 
                       <InputField
                         name="pincode"
-                        label="Postal / ZIP Code"
-                        placeholder="Enter postal / ZIP code"
+                        label={t.pincode}
+                        placeholder={t.pinPlaceholder}
                         type="text"
                         icon={MapPin}
                         value={formData.pincode}
@@ -811,7 +986,7 @@ const Signup = () => {
                         htmlFor="address"
                         className="block text-sm font-medium text-gray-300 mb-2"
                       >
-                        Full Address
+                        {t.address}
                         <span className="text-red-400 ml-1">*</span>
                       </label>
 
@@ -825,7 +1000,7 @@ const Signup = () => {
                           rows={3}
                           value={formData.address}
                           onChange={handleChange}
-                          placeholder="House number, street, area, landmark..."
+                          placeholder={t.addrPlaceholder}
                           className="
                             w-full
                             pl-12
@@ -850,7 +1025,7 @@ const Signup = () => {
                 </section>
 
                 {/* ====================================================== */}
-                {/* SUBMIT                                                  */}
+                {/* SUBMIT                                                 */}
                 {/* ====================================================== */}
 
                 <div className="pt-2">
@@ -885,28 +1060,27 @@ const Signup = () => {
                     {loading ? (
                       <>
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        <span>Creating Account...</span>
+                        <span>{t.creatingBtn}</span>
                       </>
                     ) : (
                       <>
-                        <span>Create Account</span>
+                        <span>{t.createBtn}</span>
                         <ArrowRight className="h-5 w-5" />
                       </>
                     )}
                   </button>
 
                   <p className="text-center text-sm text-gray-500 mt-5">
-                    By creating an account, you agree to our terms and
-                    conditions.
+                    {t.terms}
                   </p>
 
                   <div className="text-center text-sm text-gray-400 mt-4">
-                    Already have an account?{" "}
+                    {t.haveAccount}
                     <Link
                       to="/login"
                       className="text-blue-400 hover:text-blue-300 font-semibold transition-colors"
                     >
-                      Sign In
+                      {t.signIn}
                     </Link>
                   </div>
                 </div>
