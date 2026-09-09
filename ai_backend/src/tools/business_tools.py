@@ -12,6 +12,9 @@ from src.schema.business_profile import BusinessProfile
 from src.schema.business_analysis import BusinessAnalysis
 from src.schema.business import Business
 
+# Assumed model import for chat sessions
+from src.schema.chat import ChatSession
+
 from src.services.business_report_search import (
     search_business_report as report_vector_search,
 )
@@ -26,19 +29,18 @@ def get_en(field) -> str:
     return str(field or "")
 
 
-def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
+def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -> list:
     """
     Constructs and returns LangChain tools pre-bound to the authenticated
-    user's business_id and active database AsyncSession.
+    user_id, business_id, and active database AsyncSession.
     """
 
     @tool
     async def get_business_details() -> dict:
         """
-        Retrieves the core profile and registration details of the business.
+        Retrieves the core profile and registration details of the current business.
         Use this tool to inspect basic business metadata: business name, category,
-        description, initial margin capital, geographic address (village, district,
-        city, state, country, pincode), GPS coordinates, and current status.
+        description, initial margin capital, geographic address, GPS coordinates, and status.
         """
         stmt = select(Business).where(Business.id == business_id).limit(1)
         result = await db.execute(stmt)
@@ -59,7 +61,7 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
                 "city": get_en(business.city),
                 "state": get_en(business.state),
                 "country": get_en(business.country),
-                "pincode": business.pincode,  # Standard string
+                "pincode": business.pincode,
                 "latitude": business.latitude,
                 "longitude": business.longitude,
             },
@@ -70,6 +72,76 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
             if business.created_at
             else None,
         }
+
+    @tool
+    async def get_all_other_user_businesses() -> list[dict] | dict:
+        """
+        Retrieves an overview of all other businesses registered by this user,
+        excluding the currently selected business.
+        Use this tool when the user references their other ventures, wants to compare
+        multiple businesses, or check cross-business context.
+        """
+        stmt = (
+            select(Business)
+            .where(Business.owner_id == user_id, Business.id != business_id)
+            .order_by(Business.created_at.desc())
+        )
+        result = await db.execute(stmt)
+        records = result.scalars().all()
+
+        if not records:
+            return {"message": "No other businesses found for this user."}
+
+        return [
+            {
+                "business_id": b.id,
+                "business_name": get_en(b.business_name),
+                "category": get_en(b.category),
+                "status": b.status.value if hasattr(b.status, "value") else b.status,
+                "city": get_en(b.city),
+                "state": get_en(b.state),
+                "created_at": b.created_at.isoformat() if b.created_at else None,
+            }
+            for b in records
+        ]
+
+    @tool
+    async def get_previous_chat_session_summaries(limit: int = 5) -> list[dict] | dict:
+        """
+        Retrieves concise historical summaries of past chat sessions for this specific business.
+        Use this tool to recall past conversations, previously discussed strategies, questions,
+        or decisions made in prior interactions with this business.
+
+        Args:
+            limit: Maximum number of recent session summaries to fetch. Defaults to 5.
+        """
+        stmt = (
+            select(ChatSession)
+            .where(
+                ChatSession.business_id == business_id,
+                ChatSession.summary.isnot(None),
+            )
+            .order_by(ChatSession.updated_at.desc())
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        sessions = result.scalars().all()
+
+        if not sessions:
+            return {
+                "message": "No previous chat session summaries available for this business."
+            }
+
+        return [
+            {
+                "session_id": s.id,
+                "title": getattr(s, "title", None),
+                "summary": s.summary,
+                "key_topics": getattr(s, "key_topics", None),
+                "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+            }
+            for s in sessions
+        ]
 
     @tool
     async def get_feasibility_evidence_payloads(
@@ -85,17 +157,7 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
     ) -> dict:
         """
         Retrieves raw underlying evidence JSON datasets from the latest Feasibility Analysis.
-        Use this when exact numerical metrics or specific raw evidence are needed:
-        - 'population': WorldPop / UN DESA demographic data, radius density, household counts.
-        - 'competitors': OpenStreetMap competitor names, proximity distances, and density counts.
-        - 'market_price': Agmarknet/DOCA commodity price statistics (min, max, median, mean).
-        - 'supply_chain': Pillar scores and distance to livestock farms, abattoirs, cold chains.
-        - 'transportation': OSRM route distances, detour factors, travel times, and vehicle OPEX models.
-        - 'seasonality': Monthly rainfall, monsoon risk index, temperature, production/price indices.
-        - 'all': Returns all available evidence payloads.
-
-        Args:
-            payload_type: The category of raw evidence to retrieve. Defaults to 'all'.
+        Use this when exact numerical metrics or specific raw evidence are needed.
         """
         stmt = (
             select(BusinessAnalysis)
@@ -170,8 +232,6 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
         """
         Retrieves the business profile, qualification details, and pre-calculated
         recommended government schemes.
-        Use this tool FIRST when the user asks which schemes they are eligible for,
-        or when general business profile characteristics are required.
         """
         stmt = (
             select(BusinessProfile)
@@ -194,10 +254,7 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
     async def search_business_report(query: str) -> list[dict] | dict:
         """
         Performs semantic vector search across the 13 narrative sections of the user's
-        Feasibility Report (covering SWOT, business model recommendations, synthesized risks, etc.).
-
-        Args:
-            query: The specific topic or question to search within the narrative report.
+        Feasibility Report.
         """
         try:
             query_embedding = generate_embedding(query)
@@ -217,11 +274,6 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
     async def search_government_schemes(query: str) -> list[dict] | dict:
         """
         Searches the broader government schemes database via vector similarity.
-        Only use this if the user's pre-matched schemes in `get_business_profile`
-        do not contain the necessary information or if exploring alternative subsidies.
-
-        Args:
-            query: The scheme type, sector, or specific support requirement.
         """
         try:
             query_embedding = generate_embedding(query)
@@ -239,14 +291,7 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
     @tool
     def web_search(query: str) -> list[dict] | dict:
         """
-        Searches the live web via Tavily.
-        Use this tool ONLY when:
-        1. Checking time-sensitive or live data (current bank interest rates, active deadlines).
-        2. Verifying recent regulatory or policy shifts.
-        3. Stored database tools return no relevant information.
-
-        Args:
-            query: The search query string.
+        Searches the live web via Tavily for time-sensitive, regulatory, or live data.
         """
         api_key = os.getenv("TAVILY_API_KEY")
         if not api_key:
@@ -265,6 +310,8 @@ def get_business_agent_tools(db: AsyncSession, business_id: str) -> list:
 
     return [
         get_business_details,
+        get_all_other_user_businesses,
+        get_previous_chat_session_summaries,
         get_business_profile,
         search_business_report,
         get_feasibility_evidence_payloads,

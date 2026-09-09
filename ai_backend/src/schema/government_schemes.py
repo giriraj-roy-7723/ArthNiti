@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import DateTime, Integer, String, Text , Column
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.config.database import Base
@@ -21,6 +21,8 @@ class GovernmentScheme(Base):
         String(500),
         nullable=False,
     )
+
+    scheme_url = Column(String, nullable=True)
 
     slug: Mapped[str | None] = mapped_column(
         String(500),

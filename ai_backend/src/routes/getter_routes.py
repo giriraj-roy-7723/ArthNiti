@@ -26,7 +26,7 @@ from src.controllers.business_profile_service import (
     normalize_language,
 )
 from src.controllers.finance_service import create_financial_translation
-from src.utils.translator_utils import Translator
+from src.utils.translator_utils import Translator,translate_text
 
 router = APIRouter()
 
@@ -502,14 +502,14 @@ async def get_business_report(
         "version": analysis.version,
         "language": requested_language,
         "report_markdown": translation.content,
-        # "raw_evidence": {
-        #     "population": translation.population_payload,
-        #     "competitors": translation.competitor_payload,
-        #     "market_price": translation.market_price_payload,
-        #     "supply_chain": translation.supply_chain_payload,
-        #     "transportation": translation.transportation_payload,
-        #     "seasonality": translation.seasonality_payload,
-        # },
+        "raw_evidence": {
+            "population": translation.population_payload,
+            "competitors": translation.competitor_payload,
+            "market_price": translation.market_price_payload,
+            "supply_chain": translation.supply_chain_payload,
+            "transportation": translation.transportation_payload,
+            "seasonality": translation.seasonality_payload,
+        },
     }
 
 
@@ -694,39 +694,6 @@ async def get_report_evidence(
     }
 
 
-# @router.get("/businesses/{business_id}/report/chunks")
-# async def get_report_chunks(
-#     business_id: str,
-#     entrepreneur: Enterpreneur = Depends(require_enterpreneur),
-#     db: AsyncSession = Depends(get_db),
-# ):
-#     await get_owned_business(business_id, entrepreneur, db)
-#     analysis = await get_latest_analysis(business_id, db)
-#     result = await db.execute(
-#         select(BusinessReportChunk)
-#         .where(BusinessReportChunk.business_analysis_id == analysis.id)
-#         .order_by(
-#             BusinessReportChunk.section_number,
-#             BusinessReportChunk.chunk_index,
-#         )
-#     )
-#     chunks = result.scalars().all()
-#     return {
-#         "analysis_id": analysis.id,
-#         "version": analysis.version,
-#         "chunks": [
-#             {
-#                 "chunk_id": chunk.id,
-#                 "section_number": chunk.section_number,
-#                 "section_title": chunk.section_title,
-#                 "chunk_index": chunk.chunk_index,
-#                 "content": chunk.content,
-#                 "embedding_text": chunk.embedding_text,
-#             }
-#             for chunk in chunks
-#         ],
-#     }
-
 
 @router.get("/businesses/{business_id}/government-schemes")
 async def get_government_schemes_profile(
@@ -839,35 +806,84 @@ async def get_financial_analysis(
     return response
 
 
+import asyncio
+from fastapi import Query
+from sqlalchemy import select,delete
+
+# Import your new helper
+# from src.utils.translator import translate_text
+
+
+def format_title(text: str | None, max_len: int = 50) -> str:
+    if not text:
+        return "New Chat"
+    line = text.strip().splitlines()[0]
+    return line if len(line) <= max_len else f"{line[:max_len]}..."
+
 @router.get("/businesses/{business_id}/chat/sessions")
 async def get_chat_sessions(
     business_id: str,
+    language: str = Query("en"),
     entrepreneur: Enterpreneur = Depends(require_enterpreneur),
     db: AsyncSession = Depends(get_db),
 ):
     await get_owned_business(business_id, entrepreneur, db)
+
+    lang_code = resolve_lang_code(language)
+
+    # Subquery fallback only used when session.title is null
+    first_msg_subquery = (
+        select(ChatMessage.content)
+        .where(
+            ChatMessage.session_id == ChatSession.id,
+            ChatMessage.role == "user",
+        )
+        .order_by(ChatMessage.created_at.asc())
+        .limit(1)
+        .scalar_subquery()
+    )
+
     result = await db.execute(
-        select(ChatSession)
+        select(ChatSession, first_msg_subquery.label("first_query"))
         .where(
             ChatSession.business_id == business_id,
             ChatSession.user_id == entrepreneur.user_id,
         )
-        .order_by(ChatSession.created_at.desc())
+        .order_by(ChatSession.updated_at.desc())
     )
-    sessions = result.scalars().all()
+    rows = result.all()
+
+    # Use existing title from DB, or fallback to formatting the first user query
+    base_titles = [
+        session.title if session.title else format_title(first_query)
+        for session, first_query in rows
+    ]
+
+    # Concurrently translate titles if target language is not English
+    if lang_code != "en" and base_titles:
+        translated_titles = await asyncio.gather(
+            *(translate_text(t, target_language=lang_code) for t in base_titles)
+        )
+    else:
+        translated_titles = base_titles
+
     return {
         "business_id": business_id,
+        "language": lang_code,
         "sessions": [
             {
                 "session_id": session.id,
-                "created_at": session.created_at.isoformat()
-                if session.created_at
-                else None,
+                "title": title,
+                "created_at": (
+                    session.created_at.isoformat() if session.created_at else None
+                ),
+                "updated_at": (
+                    session.updated_at.isoformat() if session.updated_at else None
+                ),
             }
-            for session in sessions
+            for (session, _), title in zip(rows, translated_titles)
         ],
     }
-
 
 @router.get("/businesses/{business_id}/chat/sessions/{session_id}")
 async def get_chat_session(
@@ -896,11 +912,50 @@ async def get_chat_session(
         .options(selectinload(ChatMessage.translations))
         .order_by(ChatMessage.created_at.asc())
     )
-    messages = messages_result.scalars().all()
+    all_messages = messages_result.scalars().all()
+
+    # --- Identify & Delete unanswered messages ---
+    valid_messages = []
+    unanswered_msg_ids = []
+
+    for idx, msg in enumerate(all_messages):
+        if msg.role == "user":
+            # Check if immediately followed by an agent/assistant message
+            has_reply = idx + 1 < len(all_messages) and all_messages[idx + 1].role in (
+                "agent",
+                "assistant",
+            )
+            if not has_reply:
+                unanswered_msg_ids.append(msg.id)
+                continue  # skip adding to valid messages
+        valid_messages.append(msg)
+
+    # Delete unanswered messages (and cascade translations if set in DB)
+    if unanswered_msg_ids:
+        # If your database lacks CASCADE ON DELETE, delete translations first:
+        await db.execute(
+            delete(ChatMessageTranslation).where(
+                ChatMessageTranslation.message_id.in_(unanswered_msg_ids)
+            )
+        )
+        await db.execute(
+            delete(ChatMessage).where(ChatMessage.id.in_(unanswered_msg_ids))
+        )
+        await db.flush()
+
+    messages = valid_messages
+    # ----------------------------------------------
+
+    # Determine base title
+    first_user_msg = next((m for m in messages if m.role == "user"), None)
+    base_title = format_title(first_user_msg.content if first_user_msg else None)
 
     lang_code = resolve_lang_code(language)
-    translator = Translator() if lang_code != "en" else None
 
+    # Translate title if required
+    session_title = await translate_text(base_title, target_language=lang_code)
+
+    translator = Translator() if lang_code != "en" else None
     response_messages = []
 
     for msg in messages:
@@ -922,7 +977,9 @@ async def get_chat_session(
                         target_language=lang_code,
                     )
                     new_translation = ChatMessageTranslation(
-                        message_id=msg.id, language=lang_code, content=target_content
+                        message_id=msg.id,
+                        language=lang_code,
+                        content=target_content,
                     )
                     db.add(new_translation)
                 except Exception:
@@ -942,6 +999,7 @@ async def get_chat_session(
     return {
         "business_id": business_id,
         "session_id": session.id,
+        "title": session_title,
         "language": lang_code,
         "created_at": session.created_at.isoformat() if session.created_at else None,
         "messages": response_messages,

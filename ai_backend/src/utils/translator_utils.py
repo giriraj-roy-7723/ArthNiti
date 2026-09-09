@@ -307,3 +307,29 @@ def translate_entry(
         target_language=target_language,
         source_language=source_language,
     )
+
+import asyncio
+
+
+async def translate_text(
+    text: str,
+    target_language: str,
+    source_language: str = "English",
+) -> str:
+    """Translate a plain text string asynchronously with graceful fallback on error."""
+    if not text or not text.strip() or target_language.lower() in ("en", "english"):
+        return text
+
+    try:
+        translator = Translator()
+        return await asyncio.to_thread(
+            translator.translate,
+            text=text,
+            target_language=target_language,
+            source_language=source_language,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to translate text '%s' to %s: %s", text, target_language, exc
+        )
+        return text

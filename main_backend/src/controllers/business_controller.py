@@ -5,10 +5,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from src.schema.business import Business,BusinessStatus
+from src.schema.business import Business, BusinessStatus
 from src.models.business_request import BusinessCreateRequest, BusinessResponse
 from src.utils.translator_utils import translate_entry
 from src.utils.geo_utils import get_coordinates
+from src.utils.business_category_verifier import normalize_and_validate_category
 
 
 MULTILINGUAL_BUSINESS_FIELDS = [
@@ -34,6 +35,7 @@ LANG_NORMALIZER = {
     "hi": "hi",
 }
 
+
 def normalize_language(language: str) -> str:
     language = language.lower().strip()
 
@@ -46,6 +48,7 @@ def normalize_language(language: str) -> str:
         )
 
     return lang_code
+
 
 def get_available_source_language(
     business: Business,
@@ -79,6 +82,7 @@ def get_available_source_language(
         return target_language
 
     return None
+
 
 async def ensure_business_language(
     business: Business,
@@ -165,6 +169,7 @@ async def ensure_business_language(
 
     await db.flush()
 
+
 async def create_business(
     data: BusinessCreateRequest,
     owner_id: str,
@@ -220,11 +225,16 @@ async def create_business(
     # ---------------------------------------------------------
     # Create business
     # ---------------------------------------------------------
+    validated_category = await normalize_and_validate_category(
+        business_name=data.business_name,
+        provided_category=data.category,
+        description=data.description,
+    )
 
     business = Business(
         owner_id=owner_id,
         business_name={lang_code: data.business_name},
-        category={lang_code: data.category},
+        category={lang_code: validated_category},
         description=({lang_code: data.description} if data.description else {}),
         village=({lang_code: data.village} if data.village else {}),
         district={lang_code: data.district},
@@ -272,6 +282,7 @@ async def create_business(
         updated_at=business.updated_at,
     )
 
+
 def get_business_source_language(
     business: Business,
     target_language: str,
@@ -300,6 +311,7 @@ def get_business_source_language(
         return target_language
 
     return None
+
 
 async def get_business(
     business_id: str,
@@ -425,6 +437,7 @@ async def get_business(
         created_at=business.created_at,
         updated_at=business.updated_at,
     )
+
 
 async def get_my_business_ids(
     user_id: str,

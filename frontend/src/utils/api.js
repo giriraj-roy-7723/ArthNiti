@@ -11,7 +11,7 @@ const api = axios.create({
 
 // Blockchain API for payments, donations, token rewards, etc.
 const aiApi = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: "http://localhost:5000",
   headers: {
     "Content-Type": "application/json",
   },

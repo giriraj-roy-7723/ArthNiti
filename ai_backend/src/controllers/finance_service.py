@@ -69,6 +69,152 @@ def calculate_emi(principal: float, annual_rate: float, tenure_years: int):
     )
     return round(emi, 2)
 
+def generate_repayment_plan(
+    principal: float,
+    annual_rate: float,
+    tenure_years: int,
+    moratorium_months: int = 0,
+):
+    """
+    Generate a month-by-month loan repayment schedule.
+
+    Assumption:
+    - Total tenure includes the moratorium period.
+    - Interest accrues during moratorium.
+    - No payment is made during moratorium.
+    - Moratorium interest is capitalized into outstanding principal.
+    - Remaining balance is repaid over the remaining months.
+    """
+
+    if principal <= 0:
+        raise ValueError("Loan principal must be greater than zero.")
+
+    if annual_rate < 0:
+        raise ValueError("Interest rate cannot be negative.")
+
+    total_months = tenure_years * 12
+
+    if moratorium_months < 0:
+        raise ValueError("Moratorium months cannot be negative.")
+
+    if moratorium_months >= total_months:
+        raise ValueError(
+            "Moratorium period must be shorter than the total loan tenure."
+        )
+
+    monthly_rate = annual_rate / 100 / 12
+
+    balance = float(principal)
+
+    schedule = []
+
+    total_interest = 0.0
+    total_principal = 0.0
+    total_payment = 0.0
+
+    # ---------------------------------------------------------
+    # 1. Moratorium period
+    # ---------------------------------------------------------
+    for month in range(1, moratorium_months + 1):
+        if monthly_rate > 0:
+            interest = balance * monthly_rate
+        else:
+            interest = 0.0
+
+        # Interest is capitalized during moratorium
+        balance += interest
+
+        interest = round(interest, 2)
+        balance = round(balance, 2)
+
+        total_interest += interest
+
+        schedule.append(
+            {
+                "month": month,
+                "status": "moratorium",
+                "payment": 0.0,
+                "principal": 0.0,
+                "interest": interest,
+                "closing_balance": balance,
+            }
+        )
+
+    # ---------------------------------------------------------
+    # 2. Repayment period
+    # ---------------------------------------------------------
+    repayment_months = total_months - moratorium_months
+
+    if monthly_rate == 0:
+        emi = balance / repayment_months
+    else:
+        emi = (
+            balance
+            * monthly_rate
+            * (1 + monthly_rate) ** repayment_months
+            / ((1 + monthly_rate) ** repayment_months - 1)
+        )
+
+    emi = round(emi, 2)
+
+    repayment_start_month = moratorium_months + 1
+
+    for payment_number in range(1, repayment_months + 1):
+        month = repayment_start_month + payment_number - 1
+
+        opening_balance = balance
+
+        interest = balance * monthly_rate if monthly_rate > 0 else 0.0
+
+        principal_payment = emi - interest
+
+        # Prevent floating-point issues on the final payment
+        if payment_number == repayment_months:
+            principal_payment = balance
+            payment = principal_payment + interest
+        else:
+            payment = emi
+
+        balance -= principal_payment
+
+        # Avoid tiny negative floating-point values
+        if balance < 0.01:
+            balance = 0.0
+
+        interest = round(interest, 2)
+        principal_payment = round(principal_payment, 2)
+        payment = round(payment, 2)
+        balance = round(balance, 2)
+
+        total_interest += interest
+        total_principal += principal_payment
+        total_payment += payment
+
+        schedule.append(
+            {
+                "month": month,
+                "status": "repayment",
+                "payment": payment,
+                "principal": principal_payment,
+                "interest": interest,
+                "opening_balance": round(opening_balance, 2),
+                "closing_balance": balance,
+            }
+        )
+
+    return {
+        "principal": round(principal, 2),
+        "annual_interest_rate": annual_rate,
+        "monthly_interest_rate": round(monthly_rate * 100, 6),
+        "total_tenure_months": total_months,
+        "moratorium_months": moratorium_months,
+        "repayment_months": repayment_months,
+        "emi": emi,
+        "total_principal": round(total_principal, 2),
+        "total_interest": round(total_interest, 2),
+        "total_repayment": round(total_payment, 2),
+        "schedule": schedule,
+    }
 
 def calculate_break_even(fixed_costs: float, contribution_margin: float):
     if contribution_margin <= 0:
@@ -368,11 +514,16 @@ Return ONLY valid JSON using exactly this structure:
 
     loan = min(finance["loan_amount"], scheme.max_loan)
 
-    emi = calculate_emi(
-        loan,
-        scheme.interest_rate,
-        scheme.tenure_years,
+    loan = min(finance["loan_amount"], scheme.max_loan)
+
+    repayment_plan = generate_repayment_plan(
+        principal=loan,
+        annual_rate=scheme.interest_rate,
+        tenure_years=scheme.tenure_years,
+        moratorium_months=scheme.moratorium_months,
     )
+
+    emi = repayment_plan["emi"]
 
     # ---------------------------------------------------------
     # 7. Calculate financial metrics using FINAL values
@@ -490,9 +641,12 @@ Return ONLY valid JSON using exactly this structure:
             "moratorium_months": scheme.moratorium_months,
         },
         "loan": {
-            "emi": emi,
-            "total_months": scheme.tenure_years * 12,
+            "emi": repayment_plan["emi"],
+            "total_months": repayment_plan["total_tenure_months"],
+            "moratorium_months": repayment_plan["moratorium_months"],
+            "repayment_months": repayment_plan["repayment_months"],
         },
+        "repayment_plan": repayment_plan,
         "business": {
             "monthly_revenue": round(final_revenue, 2),
             "monthly_direct_costs": round(final_direct_costs, 2),
@@ -551,6 +705,36 @@ Evaluate:
 10. Whether the user's available margin capital appears sufficient
 11. Specific actions the entrepreneur should take to improve financial stability
 12. Whether the business appears suitable for financing
+13. Loan repayment schedule and repayment timeline
+14. Impact of the moratorium period on repayment
+15. Whether the EMI is affordable under expected and downside scenarios
+16. Whether the entrepreneur should maintain a repayment reserve
+
+LOAN REPAYMENT PLAN:
+
+The backend has already calculated the loan repayment schedule.
+Treat these repayment figures as authoritative.
+
+Do NOT recalculate or modify the EMI, interest, principal,
+outstanding balance, total interest, or repayment schedule.
+
+Explain:
+- loan amount
+- interest rate
+- total tenure
+- moratorium period
+- repayment period
+- EMI
+- total interest payable
+- total repayment amount
+- when repayment starts
+- how principal and interest change over time
+- whether the EMI is affordable using the expected scenario
+- whether the EMI remains affordable in the downside scenario
+- whether a repayment reserve should be maintained
+
+For the detailed monthly schedule, summarize the important stages
+rather than listing every month unless necessary.
 
 IMPORTANT:
 - Do not invent financial figures.
@@ -568,14 +752,42 @@ IMPORTANT:
 Financial projections:
 {json.dumps(financial_plans, indent=2)}
 
-Return a concise but useful business advisory report with these sections:
+Return a concise but useful business advisory report with exactly these sections:
 
 ## Overall Assessment
+
 ## Financial Strengths
+
 ## Key Risks
+
 ## Scenario Analysis
+
+## Loan Repayment Plan
+
+Include:
+- Loan amount
+- Interest rate
+- Total tenure
+- Moratorium period
+- Repayment start month
+- Repayment period
+- Monthly EMI
+- Total interest
+- Total repayment
+- A concise explanation of how repayment progresses
+
 ## Loan Repayment Assessment
+
+Explain:
+- EMI affordability in the expected scenario
+- EMI affordability in the worst scenario
+- Debt repayment risk
+- DSCR interpretation
+- Effect of the moratorium
+- Recommended repayment reserve
+
 ## Recommendations
+
 ## Final Verdict
 """
 

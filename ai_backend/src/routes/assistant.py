@@ -1,6 +1,6 @@
-import asyncio  # <-- Added this
+import asyncio
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from src.middlewares.role import require_enterpreneur
 from src.schema.enterpreneur import Enterpreneur
 from src.schema.chat import ChatSession, ChatMessage, ChatMessageTranslation
 from src.utils.translator_utils import Translator
+from src.services.chat_summary_service import update_session_summary_background
 
 router = APIRouter()
 
@@ -31,6 +32,7 @@ class ChatResponse(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_agent(
     request: ChatRequest,
+    background_tasks: BackgroundTasks,
     entrepreneur: Enterpreneur = Depends(require_enterpreneur),
     db: AsyncSession = Depends(get_db),
 ):
@@ -41,7 +43,6 @@ async def chat_with_agent(
         # 1. Translate incoming user message to English if necessary (Non-blocking)
         english_user_message = request.message
         if is_foreign_lang:
-            # Wrap the synchronous translation call in a thread
             english_user_message = await asyncio.to_thread(
                 translator.translate,
                 text=request.message,
@@ -141,6 +142,9 @@ async def chat_with_agent(
             db.add(agent_translation)
 
         await db.commit()
+
+        # 8. Trigger background summarization without blocking user response
+        background_tasks.add_task(update_session_summary_background, session_id)
 
         return ChatResponse(response=final_response, session_id=session_id)
 

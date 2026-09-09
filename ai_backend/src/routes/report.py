@@ -23,6 +23,7 @@ from src.utils.report_utils import parse_report_sections, split_text_recursively
 
 from src.utils.translator_utils import translate_entry
 
+from src.utils.business_category_verifier import normalize_and_validate_category
 
 router = APIRouter()
 
@@ -199,10 +200,17 @@ async def generate_report(
     if not business:
         # Determine the correct JSONB key based on the request language
 
+        validated_category = await normalize_and_validate_category(
+            business_name=request.business_name,
+            provided_category=request.business_type,
+            description=request.business_description,
+        )
+        
+
         business = Business(
             owner_id=entrepreneur.user_id,
             business_name={lang_code: request.business_name},
-            category={lang_code: request.business_type},
+            category={lang_code: validated_category},
             margin_capital=request.margin_capital,
             description={lang_code: request.business_description}
             if request.business_description

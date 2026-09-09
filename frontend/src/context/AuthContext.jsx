@@ -5,6 +5,7 @@ import {
   removeToken,
   isAuthenticated as hasValidToken,
 } from "../utils/auth";
+import { useNavigate} from "react-router-dom";
 import { api } from "../utils/api";
 
 const AuthContext = createContext();
@@ -24,6 +25,8 @@ const decodeTokenPayload = (token) => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     const initializeAuth = () => {
@@ -66,9 +69,12 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
+  
   const login = (token, userData) => {
     setAuthToken(token);
 
+    console.log(userData)
+    
     const tokenPayload = decodeTokenPayload(token);
 
     const nextUser = userData

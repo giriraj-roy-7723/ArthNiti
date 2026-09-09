@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from src.routes import (
     # population,
     # competitor,
@@ -38,6 +39,14 @@ app = FastAPI(
     description="FastAPI backend for hyper-local micro-enterprise feasibility analysis.",
     version="1.0.0",
     lifespan=lifespan,  # MUST be here
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Individual Module Routes
