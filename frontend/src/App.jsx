@@ -75,6 +75,7 @@ export default function App() {
                 element={<FinancialAnalysis />}
               />
 
+
               <Route
                 path="/businesses/:businessId/government-schemes"
                 element={<GovernmentSchemes />}
