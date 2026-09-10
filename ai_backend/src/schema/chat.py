@@ -39,6 +39,9 @@ class ChatMessage(Base):
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    # Optional image attached to this message
+    image_url = Column(String, nullable=True)
+    image_mime_type = Column(String, nullable=True)
 
     session = relationship("ChatSession", back_populates="messages")
     # One-to-many relationship mapping a single English message to multiple languages
@@ -59,6 +62,9 @@ class ChatMessageTranslation(Base):
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    # Optional image attached to this message
+    image_url = Column(String, nullable=True)
+    image_mime_type = Column(String, nullable=True)
 
     message = relationship("ChatMessage", back_populates="translations")
 

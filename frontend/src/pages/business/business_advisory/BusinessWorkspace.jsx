@@ -10,6 +10,7 @@ import {
   Bot,
   ChevronDown,
   ChevronUp,
+  ImagePlus,
   Landmark,
   Loader2,
   MessageCircle,
@@ -24,8 +25,12 @@ import {
 } from "lucide-react";
 
 import { aiApi } from "../../../utils/api";
+import { supabase } from "../../../utils/supabase";
 import { useLanguage } from "../../../context/LanguageContext";
+import ImageLightbox from "../../../components/ImageLightbox";
 import BusinessScopeBadge from "./components/BusinessScopeBadge";
+
+const CHAT_IMAGE_BUCKET = "chat-images";
 
 const translations = {
   english: {
@@ -202,8 +207,11 @@ const BusinessWorkspace = () => {
   const [messagesError, setMessagesError] = useState("");
 
   const [inputMessage, setInputMessage] = useState("");
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [selectedImagePreview, setSelectedImagePreview] = useState("");
+  const [selectedChatImage, setSelectedChatImage] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [sendError, setSendError] = useState(null); // Stores { errorText, lastMessageText }
+  const [sendError, setSendError] = useState(null);
 
   const [showModules, setShowModules] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -302,22 +310,80 @@ const BusinessWorkspace = () => {
     fetchChatMessages(activeSessionId);
   }, [businessId, activeSessionId, language]);
 
-  const sendMessageContent = async (textToSend) => {
-    if (!textToSend || isSending || !businessId) return;
+  const fileToDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const uploadChatImage = async (file) => {
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const fileName = `${businessId}/${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2)}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(CHAT_IMAGE_BUCKET)
+      .upload(fileName, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: publicUrlData } = supabase.storage
+      .from(CHAT_IMAGE_BUCKET)
+      .getPublicUrl(fileName);
+
+    if (!publicUrlData?.publicUrl) {
+      throw new Error("Unable to create an image URL.");
+    }
+
+    return publicUrlData.publicUrl;
+  };
+
+  const sendMessageContent = async (
+    textToSend,
+    imageFile = null,
+    tempMsgId = null,
+  ) => {
+    if ((!textToSend && !imageFile) || isSending || !businessId) return;
 
     setSendError(null);
     setIsSending(true);
 
     try {
+      const imageBase64 = imageFile ? await fileToDataUrl(imageFile) : null;
+      const supabaseUrl = imageFile ? await uploadChatImage(imageFile) : null;
+
       const response = await aiApi.post("/api/v1/assistant/chat", {
         business_id: businessId,
-        message: textToSend,
+        message: textToSend || "Please analyze this image.",
         session_id: activeSessionId || null,
         language: language || "en",
+        image_url: supabaseUrl,
+        supabase_url: supabaseUrl,
+        image_base64: imageBase64,
       });
 
-      const { response: agentResponse, session_id: newSessionId } =
-        response.data;
+      const {
+        response: agentResponse,
+        session_id: newSessionId,
+        image_url: persistedImageUrl,
+      } = response.data;
+
+      // Update the optimistic message image with the persistent Supabase URL
+      if (persistedImageUrl && tempMsgId) {
+        setMessages((previous) =>
+          previous.map((message) =>
+            message.message_id === tempMsgId
+              ? { ...message, image_url: persistedImageUrl }
+              : message,
+          ),
+        );
+      }
 
       const agentMsg = {
         message_id: `agent-${Date.now()}`,
@@ -337,6 +403,8 @@ const BusinessWorkspace = () => {
       setSendError({
         errorText: error.response?.data?.detail || t.failedToSendMessage,
         failedMessageText: textToSend,
+        failedImageFile: imageFile,
+        tempMsgId: tempMsgId,
       });
     } finally {
       setIsSending(false);
@@ -347,24 +415,45 @@ const BusinessWorkspace = () => {
     e?.preventDefault();
 
     const trimmed = inputMessage.trim();
-    if (!trimmed || isSending || !businessId) return;
+    if ((!trimmed && !selectedImageFile) || isSending || !businessId) return;
+
+    const tempMsgId = `temp-${Date.now()}`;
+    const previewUrl = selectedImagePreview;
+    const imageFile = selectedImageFile;
 
     const optimisticUserMsg = {
-      message_id: `temp-${Date.now()}`,
+      message_id: tempMsgId,
       role: "user",
       content: trimmed,
+      image_url: previewUrl,
       created_at: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, optimisticUserMsg]);
     setInputMessage("");
-    await sendMessageContent(trimmed);
+    setSelectedImageFile(null);
+    setSelectedImagePreview("");
+
+    await sendMessageContent(trimmed, imageFile, tempMsgId);
   };
 
   const handleRetryFailedMessage = () => {
-    if (!sendError?.failedMessageText) return;
-    const retryText = sendError.failedMessageText;
-    sendMessageContent(retryText);
+    if (!sendError) return;
+    const { failedMessageText, failedImageFile, tempMsgId } = sendError;
+    sendMessageContent(failedMessageText, failedImageFile, tempMsgId);
+  };
+
+  const handleImageSelection = (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+
+    if (selectedImagePreview) {
+      URL.revokeObjectURL(selectedImagePreview);
+    }
+
+    setSelectedImageFile(file);
+    setSelectedImagePreview(URL.createObjectURL(file));
+    event.target.value = "";
   };
 
   const handleKeyDown = (e) => {
@@ -813,6 +902,22 @@ const BusinessWorkspace = () => {
                               : "w-full border-gray-800 bg-gray-900/80 text-gray-200"
                           }`}
                         >
+                          {message.image_url && (
+                            <button
+                              type="button"
+                              className="mb-2 block max-w-full overflow-hidden rounded-xl text-left"
+                              onClick={() =>
+                                setSelectedChatImage(message.image_url)
+                              }
+                              aria-label="Open chat image"
+                            >
+                              <img
+                                src={message.image_url}
+                                alt="Chat attachment"
+                                className="max-h-64 max-w-full cursor-zoom-in rounded-xl object-contain transition hover:opacity-90"
+                              />
+                            </button>
+                          )}
                           {isUser ? (
                             <p className="whitespace-pre-wrap text-sm leading-6">
                               {message.content}
@@ -978,10 +1083,49 @@ const BusinessWorkspace = () => {
 
             {/* Input Composer Box */}
             <div className="shrink-0 border-t border-gray-800 p-3 sm:p-4">
+              {selectedImagePreview && (
+                <div className="mb-2 flex items-center gap-2">
+                  <img
+                    src={selectedImagePreview}
+                    alt="Selected chat attachment"
+                    className="h-16 w-16 rounded-lg border border-gray-700 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedImagePreview) {
+                        URL.revokeObjectURL(selectedImagePreview);
+                      }
+                      setSelectedImageFile(null);
+                      setSelectedImagePreview("");
+                    }}
+                    className="text-xs text-gray-400 hover:text-white"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              )}
               <form
                 onSubmit={handleSendMessage}
                 className="flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-950/80 p-1.5 focus-within:border-blue-500/40"
               >
+                <label
+                  htmlFor="chat-image-upload"
+                  className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-800 hover:text-white ${
+                    isSending ? "pointer-events-none opacity-40" : ""
+                  }`}
+                  title="Attach image"
+                >
+                  <ImagePlus size={16} />
+                </label>
+                <input
+                  id="chat-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelection}
+                  disabled={isSending}
+                  className="hidden"
+                />
                 <input
                   type="text"
                   value={inputMessage}
@@ -994,7 +1138,9 @@ const BusinessWorkspace = () => {
 
                 <button
                   type="submit"
-                  disabled={!inputMessage.trim() || isSending}
+                  disabled={
+                    (!inputMessage.trim() && !selectedImageFile) || isSending
+                  }
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isSending ? (
@@ -1011,6 +1157,11 @@ const BusinessWorkspace = () => {
           </section>
         </div>
       </main>
+      <ImageLightbox
+        src={selectedChatImage}
+        alt="Chat attachment"
+        onClose={() => setSelectedChatImage("")}
+      />
     </div>
   );
 };

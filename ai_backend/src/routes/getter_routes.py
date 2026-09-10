@@ -26,7 +26,7 @@ from src.controllers.business_profile_service import (
     normalize_language,
 )
 from src.controllers.finance_service import create_financial_translation
-from src.utils.translator_utils import Translator,translate_text
+from src.utils.translator_utils import Translator, translate_text
 
 router = APIRouter()
 
@@ -694,7 +694,6 @@ async def get_report_evidence(
     }
 
 
-
 @router.get("/businesses/{business_id}/government-schemes")
 async def get_government_schemes_profile(
     business_id: str,
@@ -808,7 +807,7 @@ async def get_financial_analysis(
 
 import asyncio
 from fastapi import Query
-from sqlalchemy import select,delete
+from sqlalchemy import select, delete
 
 # Import your new helper
 # from src.utils.translator import translate_text
@@ -819,6 +818,7 @@ def format_title(text: str | None, max_len: int = 50) -> str:
         return "New Chat"
     line = text.strip().splitlines()[0]
     return line if len(line) <= max_len else f"{line[:max_len]}..."
+
 
 @router.get("/businesses/{business_id}/chat/sessions")
 async def get_chat_sessions(
@@ -884,6 +884,7 @@ async def get_chat_sessions(
             for (session, _), title in zip(rows, translated_titles)
         ],
     }
+
 
 @router.get("/businesses/{business_id}/chat/sessions/{session_id}")
 async def get_chat_session(
@@ -990,6 +991,8 @@ async def get_chat_session(
                 "message_id": msg.id,
                 "role": msg.role,
                 "content": target_content,
+                "image_url": msg.image_url,
+                "image_mime_type": msg.image_mime_type,
                 "created_at": msg.created_at.isoformat() if msg.created_at else None,
             }
         )
