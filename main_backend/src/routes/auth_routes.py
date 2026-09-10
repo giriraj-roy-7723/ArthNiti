@@ -17,6 +17,27 @@ security = HTTPBearer()
 router = APIRouter()
 
 
+from src.controllers.otp_controller import send_email_otp, verify_email_otp
+
+
+from pydantic import BaseModel, EmailStr
+
+class SendOtpRequest(BaseModel):
+    email: EmailStr
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
+@router.post("/send-otp")
+async def send_otp(data: SendOtpRequest):
+    return await send_email_otp(data.email)
+
+
+@router.post("/verify-otp")
+async def verify_otp(data: VerifyOtpRequest):
+    return await verify_email_otp(data.email, data.otp)
+
+
 @router.post("/signup")
 async def signup(
     data: SignupRequest, language: str = "english", db: AsyncSession = Depends(get_db)

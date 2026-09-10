@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Enum, Float
+from sqlalchemy import Boolean, Column, String, DateTime, Enum,Float
 from sqlalchemy.dialects.postgresql import JSONB
 from src.config.database import Base
 from datetime import datetime, timezone
@@ -46,6 +46,7 @@ class User(Base):
     password = Column(String, nullable=False)
     profile_pic = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.user, nullable=False)
+    email_verified = Column(Boolean, nullable=True, default=None)
 
     # Multilingual address fields
     address = Column(JSONB, nullable=False, default=dict)

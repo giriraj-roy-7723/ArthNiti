@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.lib.redis_client import redis
 from src.schema.user import User, UserRole, generate_unique_username
 from src.schema.invite import Invite
 from src.schema.buyer import Buyer
@@ -63,6 +64,7 @@ USER_MULTILINGUAL_FIELDS = [
     "state",
     "country",
 ]
+
 
 
 def get_user_source_language(
@@ -174,6 +176,9 @@ async def ensure_user_language(
 
 async def signup_user(data, language: str, db: AsyncSession):
     # Check if user already exists
+    verified = await redis.get(f"otp_verified:{data.email}")
+    if not verified:
+        raise HTTPException(status_code=400, detail="Email not verified")
 
     lang_code = LANG_NORMALIZER[language.strip().lower()]
 
@@ -206,6 +211,7 @@ async def signup_user(data, language: str, db: AsyncSession):
         state={lang_code: data.state},
         country={lang_code: data.country},
         pincode=data.pincode,
+        email_verified=True,
     )
 
     db.add(user)

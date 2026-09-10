@@ -18,3 +18,5 @@ async def send_invitation_email(
     db: AsyncSession = Depends(get_db),
 ):
     return await send_invitation(data, admin.user_id, db)
+
+
