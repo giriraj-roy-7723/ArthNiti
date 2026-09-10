@@ -74,3 +74,12 @@ async def patch_my_profile(
         user_id=user_id,
         db=db,
     )
+
+@router.get("/profile")
+async def get_user_profile(
+    user_id:str,
+    language: str = "english",
+    auth: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_my_profile(user_id, language, db)

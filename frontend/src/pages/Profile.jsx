@@ -32,12 +32,10 @@ const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [isEditing, setIsEditing] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState("");
-
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -50,7 +48,6 @@ const Profile = () => {
     country: "",
     pincode: "",
   });
-
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState("");
 
@@ -210,14 +207,8 @@ const Profile = () => {
 
   const t = translations[language] || translations.english;
 
-  // Handles backend values such as:
-  // "West Bengal"
-  // { en: "West Bengal", hi: "पश्चिम बंगाल", bn: "পশ্চিমবঙ্গ" }
-  // { english: "...", hindi: "...", bengali: "..." }
   const getLocalizedValue = (value) => {
-    if (value === null || value === undefined || value === "") {
-      return "";
-    }
+    if (value === null || value === undefined || value === "") return "";
 
     if (typeof value === "string" || typeof value === "number") {
       return String(value);
@@ -265,27 +256,25 @@ const Profile = () => {
     return String(value);
   };
 
-  // =========================================================
-  // Dummy role-specific functions
-  // =========================================================
+  const getProfileImage = (profileData = profile) => {
+    if (!profileData) return "";
 
-  const fetchEntrepreneurDetails = async () => {
-    return {
-      available: false,
-      data: null,
-    };
+    return (
+      getLocalizedValue(profileData.profile_pic) ||
+      getLocalizedValue(profileData.profile_image) ||
+      ""
+    );
   };
 
-  const fetchBuyerDetails = async () => {
-    return {
-      available: false,
-      data: null,
-    };
-  };
+  const fetchEntrepreneurDetails = async () => ({
+    available: false,
+    data: null,
+  });
 
-  // =========================================================
-  // Edit profile helpers
-  // =========================================================
+  const fetchBuyerDetails = async () => ({
+    available: false,
+    data: null,
+  });
 
   const startEditing = () => {
     setEditForm({
@@ -300,7 +289,6 @@ const Profile = () => {
       country: getLocalizedValue(profile?.country),
       pincode: getLocalizedValue(profile?.pincode),
     });
-
     setSaveError("");
     setSaveSuccess("");
     setImageError("");
@@ -314,15 +302,11 @@ const Profile = () => {
   };
 
   const handleEditChange = (field, value) => {
-    setEditForm((prev) => ({
-      ...prev,
+    setEditForm((previous) => ({
+      ...previous,
       [field]: value,
     }));
   };
-
-  // =========================================================
-  // Save profile
-  // =========================================================
 
   const saveProfile = async () => {
     try {
@@ -338,8 +322,8 @@ const Profile = () => {
 
       const updatedProfile = response.data || {};
 
-      setProfile((prev) => ({
-        ...prev,
+      setProfile((previous) => ({
+        ...previous,
         ...(typeof updatedProfile === "object" ? updatedProfile : {}),
         first_name: updatedProfile.first_name ?? editForm.first_name,
         last_name: updatedProfile.last_name ?? editForm.last_name,
@@ -364,7 +348,6 @@ const Profile = () => {
       setSaveSuccess(t.profileUpdatedSuccess);
     } catch (err) {
       console.error("Failed to update profile:", err);
-
       setSaveError(
         getLocalizedValue(err.response?.data?.detail) || t.profileUpdateFailed,
       );
@@ -373,16 +356,10 @@ const Profile = () => {
     }
   };
 
-  // =========================================================
-  // Profile image upload
-  // =========================================================
-
   const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     setImageError("");
     setSaveError("");
@@ -394,15 +371,17 @@ const Profile = () => {
         throw new Error(t.selectImage);
       }
 
-      const fileExtension = file.name.split(".").pop();
-
+      const fileExtension = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${Date.now()}-${Math.random()
         .toString(36)
         .substring(2)}.${fileExtension}`;
 
       const { error: uploadError } = await supabase.storage
         .from("profile-images")
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          contentType: file.type,
+          upsert: false,
+        });
 
       if (uploadError) {
         throw uploadError;
@@ -418,7 +397,6 @@ const Profile = () => {
         throw new Error(t.imageUploadFailed);
       }
 
-      // Store the Supabase public URL in the backend users.profile_pic.
       const response = await api.patch(
         UPDATE_PROFILE_ENDPOINT,
         {
@@ -433,8 +411,8 @@ const Profile = () => {
 
       const updatedProfile = response.data || {};
 
-      setProfile((prev) => ({
-        ...prev,
+      setProfile((previous) => ({
+        ...previous,
         ...(typeof updatedProfile === "object" ? updatedProfile : {}),
         profile_pic: imageUrl,
         profile_image: imageUrl,
@@ -443,7 +421,6 @@ const Profile = () => {
       setSaveSuccess(t.profileUpdatedSuccess);
     } catch (err) {
       console.error("Image upload failed:", err);
-
       setImageError(
         getLocalizedValue(err.response?.data?.detail) ||
           err.message ||
@@ -457,10 +434,6 @@ const Profile = () => {
       }
     }
   };
-
-  // =========================================================
-  // Fetch profile
-  // =========================================================
 
   const fetchProfile = async () => {
     try {
@@ -492,7 +465,6 @@ const Profile = () => {
       setProfile(profileData);
     } catch (err) {
       console.error("Failed to fetch profile:", err);
-
       setError(getLocalizedValue(err.response?.data?.detail) || t.unableToLoad);
     } finally {
       setLoading(false);
@@ -503,14 +475,8 @@ const Profile = () => {
     fetchProfile();
   }, [language]);
 
-  // =========================================================
-  // Helpers
-  // =========================================================
-
   const getRoleKey = () => {
-    if (!profile?.role) {
-      return "unknown";
-    }
+    if (!profile?.role) return "unknown";
 
     return getLocalizedValue(profile.role).toLowerCase().replace(/[\s-]/g, "_");
   };
@@ -540,9 +506,7 @@ const Profile = () => {
       return BriefcaseBusiness;
     }
 
-    if (role === "buyer") {
-      return ShoppingBag;
-    }
+    if (role === "buyer") return ShoppingBag;
 
     if (role === "government" || role === "government_official") {
       return Landmark;
@@ -554,7 +518,6 @@ const Profile = () => {
   const getInitials = () => {
     const first = getLocalizedValue(profile?.first_name);
     const last = getLocalizedValue(profile?.last_name);
-
     const initials = `${first.charAt(0)}${last.charAt(0)}`;
 
     return initials.toUpperCase() || "U";
@@ -562,17 +525,8 @@ const Profile = () => {
 
   const displayValue = (value) => {
     const resolvedValue = getLocalizedValue(value);
-
-    if (!resolvedValue) {
-      return t.notAvailable;
-    }
-
-    return resolvedValue;
+    return resolvedValue || t.notAvailable;
   };
-
-  // =========================================================
-  // Reusable information item
-  // =========================================================
 
   const InfoItem = ({
     icon: Icon,
@@ -601,7 +555,7 @@ const Profile = () => {
             <input
               type="text"
               value={editForm[field] || ""}
-              onChange={(e) => handleEditChange(field, e.target.value)}
+              onChange={(event) => handleEditChange(field, event.target.value)}
               disabled={savingProfile}
               className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-white outline-none transition placeholder:text-gray-600 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             />
@@ -615,10 +569,6 @@ const Profile = () => {
     </div>
   );
 
-  // =========================================================
-  // Section wrapper
-  // =========================================================
-
   const ProfileSection = ({ icon: Icon, title, children }) => (
     <section className="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/60 shadow-[0_15px_40px_rgba(0,0,0,0.18)] backdrop-blur-xl">
       <div className="flex items-center gap-3 border-b border-gray-800 px-6 py-5">
@@ -626,18 +576,12 @@ const Profile = () => {
           <Icon size={19} className="text-blue-400" />
         </div>
 
-        <div>
-          <h2 className="text-base font-bold text-white">{title}</h2>
-        </div>
+        <h2 className="text-base font-bold text-white">{title}</h2>
       </div>
 
       <div className="p-6">{children}</div>
     </section>
   );
-
-  // =========================================================
-  // Government official section
-  // =========================================================
 
   const GovernmentOfficialSection = () => {
     const info = profile?.role_info || {};
@@ -650,44 +594,37 @@ const Profile = () => {
             label={t.designation}
             value={info.designation}
           />
-
           <InfoItem
             icon={Building2}
             label={t.agencyName}
             value={info.agency_name}
           />
-
           <InfoItem
             icon={MapPin}
             label={t.agencyAddress}
             value={info.agency_address}
             fullWidth
           />
-
           <InfoItem
             icon={MapPin}
             label={t.agencyCity}
             value={info.agency_city}
           />
-
           <InfoItem
             icon={MapPin}
             label={t.agencyState}
             value={info.agency_state}
           />
-
           <InfoItem
             icon={Globe2}
             label={t.agencyCountry}
             value={info.agency_country}
           />
-
           <InfoItem
             icon={Building2}
             label={t.agencyType}
             value={info.agency_type}
           />
-
           <InfoItem
             icon={Hash}
             label={t.agencyPincode}
@@ -698,10 +635,6 @@ const Profile = () => {
     );
   };
 
-  // =========================================================
-  // Entrepreneur section
-  // =========================================================
-
   const EntrepreneurSection = () => (
     <ProfileSection icon={BriefcaseBusiness} title={t.roleInformation}>
       <div className="rounded-2xl border border-blue-500/10 bg-blue-500/5 p-6">
@@ -709,10 +642,8 @@ const Profile = () => {
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
             <BriefcaseBusiness size={22} className="text-blue-400" />
           </div>
-
           <div>
             <h3 className="font-bold text-white">{t.entrepreneur}</h3>
-
             <p className="mt-2 text-sm leading-6 text-gray-400">
               {t.entrepreneurDescription}
             </p>
@@ -722,10 +653,6 @@ const Profile = () => {
     </ProfileSection>
   );
 
-  // =========================================================
-  // Buyer section
-  // =========================================================
-
   const BuyerSection = () => (
     <ProfileSection icon={ShoppingBag} title={t.roleInformation}>
       <div className="rounded-2xl border border-purple-500/10 bg-purple-500/5 p-6">
@@ -733,10 +660,8 @@ const Profile = () => {
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-500/10">
             <ShoppingBag size={22} className="text-purple-400" />
           </div>
-
           <div>
             <h3 className="font-bold text-white">{t.buyer}</h3>
-
             <p className="mt-2 text-sm leading-6 text-gray-400">
               {t.buyerDescription}
             </p>
@@ -745,10 +670,6 @@ const Profile = () => {
       </div>
     </ProfileSection>
   );
-
-  // =========================================================
-  // Loading
-  // =========================================================
 
   if (loading) {
     return (
@@ -763,17 +684,12 @@ const Profile = () => {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
               <Loader2 size={30} className="animate-spin text-blue-400" />
             </div>
-
             <p className="text-sm font-medium text-gray-400">{t.loading}</p>
           </div>
         </div>
       </div>
     );
   }
-
-  // =========================================================
-  // Error
-  // =========================================================
 
   if (error) {
     return (
@@ -811,21 +727,18 @@ const Profile = () => {
     );
   }
 
-  if (!profile) {
-    return null;
-  }
+  if (!profile) return null;
 
   const RoleIcon = getRoleIcon();
   const role = getRoleKey();
-
   const firstName = getLocalizedValue(profile.first_name);
   const lastName = getLocalizedValue(profile.last_name);
   const email = getLocalizedValue(profile.email);
   const phone = getLocalizedValue(profile.phone || profile.phone_number);
+  const profileImage = getProfileImage(profile);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-950 text-white">
-      {/* Background */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
         <div className="absolute -left-40 top-1/3 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
@@ -833,7 +746,6 @@ const Profile = () => {
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-blue-400">
             <Sparkles size={16} />
@@ -845,7 +757,6 @@ const Profile = () => {
               <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                 {t.profile}
               </h1>
-
               <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-400 sm:text-base">
                 {t.subtitle}
               </p>
@@ -883,7 +794,6 @@ const Profile = () => {
                   ) : (
                     <Check size={16} />
                   )}
-
                   {savingProfile ? t.saving : t.saveChanges}
                 </button>
               </div>
@@ -891,7 +801,6 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Messages */}
         {saveError && (
           <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
             <AlertCircle size={17} />
@@ -913,19 +822,20 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Profile Hero */}
         <div className="mb-6 overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/70 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl">
           <div className="relative overflow-hidden p-6 sm:p-8">
             <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-blue-600/10 blur-3xl" />
 
             <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-              {/* Profile image */}
               <div className="relative shrink-0">
-                {profile.profile_image ? (
+                {profileImage ? (
                   <img
-                    src={profile.profile_image}
+                    src={profileImage}
                     alt={`${firstName} ${lastName}`}
                     className="h-24 w-24 rounded-2xl border border-gray-700 object-cover shadow-xl sm:h-28 sm:w-28"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
                   />
                 ) : (
                   <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-2xl font-extrabold text-blue-400 shadow-xl sm:h-28 sm:w-28 sm:text-3xl">
@@ -933,7 +843,6 @@ const Profile = () => {
                   </div>
                 )}
 
-                {/* Upload button */}
                 <label
                   htmlFor="profile-image-upload"
                   className={`absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border border-gray-700 bg-gray-900 text-gray-300 shadow-lg transition ${
@@ -959,7 +868,6 @@ const Profile = () => {
                 />
               </div>
 
-              {/* Main identity */}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -980,13 +888,11 @@ const Profile = () => {
                 <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                   <div className="flex min-w-0 items-center gap-2 text-gray-400">
                     <Mail size={15} className="shrink-0 text-gray-600" />
-
                     <span className="truncate">{displayValue(email)}</span>
                   </div>
 
                   <div className="flex min-w-0 items-center gap-2 text-gray-400">
                     <Phone size={15} className="shrink-0 text-gray-600" />
-
                     <span className="truncate">{displayValue(phone)}</span>
                   </div>
                 </div>
@@ -995,7 +901,6 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Personal Information */}
         <div className="space-y-6">
           <ProfileSection icon={User} title={t.personalInformation}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1006,7 +911,6 @@ const Profile = () => {
                 field="first_name"
                 editable
               />
-
               <InfoItem
                 icon={User}
                 label={t.lastName}
@@ -1014,9 +918,7 @@ const Profile = () => {
                 field="last_name"
                 editable
               />
-
               <InfoItem icon={Mail} label={t.email} value={profile.email} />
-
               <InfoItem
                 icon={Phone}
                 label={t.phone}
@@ -1027,7 +929,6 @@ const Profile = () => {
             </div>
           </ProfileSection>
 
-          {/* Address */}
           <ProfileSection icon={MapPin} title={t.addressInformation}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InfoItem
@@ -1038,7 +939,6 @@ const Profile = () => {
                 editable
                 fullWidth
               />
-
               <InfoItem
                 icon={MapPin}
                 label={t.village}
@@ -1046,7 +946,6 @@ const Profile = () => {
                 field="village"
                 editable
               />
-
               <InfoItem
                 icon={MapPin}
                 label={t.district}
@@ -1054,7 +953,6 @@ const Profile = () => {
                 field="district"
                 editable
               />
-
               <InfoItem
                 icon={MapPin}
                 label={t.city}
@@ -1062,7 +960,6 @@ const Profile = () => {
                 field="city"
                 editable
               />
-
               <InfoItem
                 icon={MapPin}
                 label={t.state}
@@ -1070,7 +967,6 @@ const Profile = () => {
                 field="state"
                 editable
               />
-
               <InfoItem
                 icon={Globe2}
                 label={t.country}
@@ -1078,7 +974,6 @@ const Profile = () => {
                 field="country"
                 editable
               />
-
               <InfoItem
                 icon={Hash}
                 label={t.pincode}
@@ -1089,7 +984,6 @@ const Profile = () => {
             </div>
           </ProfileSection>
 
-          {/* Role specific */}
           {(role === "government" || role === "government_official") && (
             <GovernmentOfficialSection />
           )}
@@ -1100,7 +994,6 @@ const Profile = () => {
 
           {role === "buyer" && <BuyerSection />}
 
-          {/* Future roles */}
           {role !== "government" &&
             role !== "government_official" &&
             role !== "entrepreneur" &&
@@ -1110,12 +1003,10 @@ const Profile = () => {
                 <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-5">
                   <div className="flex items-center gap-3">
                     <RoleIcon size={20} className="text-blue-400" />
-
                     <div>
                       <p className="text-sm font-bold text-white">
                         {getRoleLabel()}
                       </p>
-
                       <p className="mt-1 text-xs text-gray-500">
                         {t.profileUpdated}
                       </p>

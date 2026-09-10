@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Building2,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
   CircleDollarSign,
-  Clock3,
   Globe2,
-  Landmark,
   Mail,
   MapPin,
   MessageCircle,
@@ -54,14 +53,14 @@ const translations = {
     coordinates: "Coordinates",
     status: "Status",
     owner: "Owner",
-    contactOwner: "Contact owner",
-    ownerContact: "Owner contact",
+    contactOwner: "Owner Information & Contact",
     email: "Email",
     phone: "Phone",
     whatsapp: "WhatsApp",
-    contactUnavailable: "Owner contact information is unavailable.",
+    visitProfile: "Visit Profile",
+    contactUnavailable: "Owner details are currently unavailable.",
     signInToContact:
-      "Sign in to view owner contact details and contact the business owner.",
+      "Sign in to view owner details, visit their profile, and contact them.",
     created: "Created",
     updated: "Updated",
     latitude: "Latitude",
@@ -105,14 +104,14 @@ const translations = {
     coordinates: "निर्देशांक",
     status: "स्थिति",
     owner: "मालिक",
-    contactOwner: "मालिक से संपर्क करें",
-    ownerContact: "मालिक का संपर्क",
+    contactOwner: "मालिक की जानकारी और संपर्क",
     email: "ईमेल",
     phone: "फ़ोन",
     whatsapp: "व्हाट्सऐप",
-    contactUnavailable: "मालिक की संपर्क जानकारी उपलब्ध नहीं है।",
+    visitProfile: "प्रोफ़ाइल देखें",
+    contactUnavailable: "मालिक की जानकारी उपलब्ध नहीं है।",
     signInToContact:
-      "मालिक की संपर्क जानकारी देखने और संपर्क करने के लिए साइन इन करें।",
+      "मालिक की जानकारी देखने, प्रोफ़ाइल देखने और संपर्क करने के लिए साइन इन करें।",
     created: "बनाया गया",
     updated: "अपडेट किया गया",
     latitude: "अक्षांश",
@@ -157,14 +156,14 @@ const translations = {
     coordinates: "স্থানাঙ্ক",
     status: "স্থিতি",
     owner: "মালিক",
-    contactOwner: "মালিকের সাথে যোগাযোগ করুন",
-    ownerContact: "মালিকের যোগাযোগ",
+    contactOwner: "মালিকের তথ্য ও যোগাযোগ",
     email: "ইমেল",
     phone: "ফোন",
     whatsapp: "হোয়াটসঅ্যাপ",
-    contactUnavailable: "মালিকের যোগাযোগের তথ্য পাওয়া যায়নি।",
+    visitProfile: "প্রোফাইল দেখুন",
+    contactUnavailable: "মালিকের তথ্য পাওয়া যায়নি।",
     signInToContact:
-      "মালিকের যোগাযোগের তথ্য দেখতে এবং যোগাযোগ করতে সাইন ইন করুন।",
+      "মালিকের বিবরণ দেখতে, প্রোফাইল দেখতে এবং যোগাযোগ করতে সাইন ইন করুন।",
     created: "তৈরি হয়েছে",
     updated: "আপডেট হয়েছে",
     latitude: "অক্ষাংশ",
@@ -192,13 +191,10 @@ const emptyFilters = {
 const languageMap = {
   english: "en",
   en: "en",
-  eng: "en",
   hindi: "hi",
   hi: "hi",
-  hin: "hi",
   bengali: "bn",
   bn: "bn",
-  bng: "bn",
 };
 
 const getLanguageKey = (language) => {
@@ -214,24 +210,52 @@ const getLanguageKey = (language) => {
 const getText = (value, languageCode) => {
   if (value === null || value === undefined || value === "") return "";
 
-  if (typeof value !== "object") return String(value);
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
 
-  return (
-    value[languageCode] ||
-    value.en ||
-    value.english ||
-    value.hi ||
-    value.bn ||
-    Object.values(value).find(Boolean) ||
-    ""
-  );
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => getText(item, languageCode))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "object") {
+    const localizedValue =
+      value[languageCode] ??
+      value.en ??
+      value.english ??
+      value.hi ??
+      value.hindi ??
+      value.bn ??
+      value.bengali;
+
+    if (
+      localizedValue !== undefined &&
+      localizedValue !== null &&
+      localizedValue !== ""
+    ) {
+      return getText(localizedValue, languageCode);
+    }
+
+    const fallback = Object.values(value).find(
+      (item) =>
+        item !== null &&
+        item !== undefined &&
+        item !== "" &&
+        typeof item !== "object",
+    );
+
+    return fallback !== undefined ? String(fallback) : "";
+  }
+
+  return String(value);
 };
 
 const formatDate = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return String(value);
 
   return date.toLocaleDateString(undefined, {
@@ -243,9 +267,7 @@ const formatDate = (value) => {
 
 const formatCapital = (value) => {
   if (value === null || value === undefined || value === "") return "-";
-
   const number = Number(value);
-
   if (Number.isNaN(number)) return String(value);
 
   return `₹${number.toLocaleString("en-IN")}`;
@@ -253,35 +275,28 @@ const formatCapital = (value) => {
 
 const normalizePhoneForWhatsApp = (phone) => {
   if (!phone) return "";
-
   const digits = String(phone).replace(/\D/g, "");
-
   if (!digits) return "";
-
   if (digits.startsWith("91") && digits.length >= 12) return digits;
-
   if (digits.length === 10) return `91${digits}`;
-
   return digits;
 };
 
 const BusinessDirectory = () => {
   const { language } = useLanguage();
+  const navigate = useNavigate();
 
   const languageKey = getLanguageKey(language);
   const languageCode = languageMap[languageKey] || "en";
-  const t = translations[languageKey];
+  const t = translations[languageKey] || translations.english;
 
   const [businesses, setBusinesses] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
-
   const [selectedBusiness, setSelectedBusiness] = useState(null);
   const [ownerContact, setOwnerContact] = useState(null);
-
   const [filters, setFilters] = useState(emptyFilters);
   const [appliedFilters, setAppliedFilters] = useState({});
   const [searchOpen, setSearchOpen] = useState(false);
-
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
@@ -299,7 +314,6 @@ const BusinessDirectory = () => {
 
   const visibleBusinesses = useMemo(() => {
     if (!currentUser?.user_id) return businesses;
-
     return businesses.filter(
       (business) => business.owner_id !== currentUser.user_id,
     );
@@ -307,14 +321,15 @@ const BusinessDirectory = () => {
 
   const fetchCurrentUser = async () => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       setCurrentUser(null);
       return null;
     }
 
     try {
-      const response = await api.get("/auth/me");
+      const response = await api.get("/auth/me", {
+        params: { language: languageCode },
+      });
       const user = response.data;
       setCurrentUser(user);
       return user;
@@ -341,7 +356,11 @@ const BusinessDirectory = () => {
       setAppliedFilters({});
     } catch (err) {
       console.error("Failed to load businesses:", err);
-      setError(err?.response?.data?.detail || err?.message || t.failed);
+      setError(
+        getText(err?.response?.data?.detail, languageCode) ||
+          err?.message ||
+          t.failed,
+      );
     } finally {
       setLoading(false);
     }
@@ -371,7 +390,11 @@ const BusinessDirectory = () => {
       setSearchOpen(false);
     } catch (err) {
       console.error("Business search failed:", err);
-      setError(err?.response?.data?.detail || err?.message || t.failed);
+      setError(
+        getText(err?.response?.data?.detail, languageCode) ||
+          err?.message ||
+          t.failed,
+      );
     } finally {
       setSearching(false);
     }
@@ -390,7 +413,7 @@ const BusinessDirectory = () => {
   };
 
   const handleClearSearch = async () => {
-    setFilters(emptyFilters);
+    setFilters({ ...emptyFilters });
     setAppliedFilters({});
     setSearchOpen(false);
     await fetchActiveBusinesses();
@@ -404,9 +427,7 @@ const BusinessDirectory = () => {
 
     try {
       setContactLoading(true);
-
       const response = await api.get(`/businesses/${business.id}/contact`);
-
       setOwnerContact(response.data);
     } catch (err) {
       console.error("Failed to load owner contact:", err);
@@ -419,6 +440,12 @@ const BusinessDirectory = () => {
   const handleCloseModal = () => {
     setSelectedBusiness(null);
     setOwnerContact(null);
+  };
+
+  const handleVisitProfile = (ownerId) => {
+    if (!ownerId) return;
+    handleCloseModal();
+    navigate(`/profile/${ownerId}`);
   };
 
   useEffect(() => {
@@ -440,7 +467,6 @@ const BusinessDirectory = () => {
     };
 
     document.addEventListener("keydown", handleEscape);
-
     return () => {
       document.removeEventListener("keydown", handleEscape);
     };
@@ -459,7 +485,6 @@ const BusinessDirectory = () => {
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
               {t.title}
             </h1>
-
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
               {t.subtitle}
             </p>
@@ -482,9 +507,7 @@ const BusinessDirectory = () => {
 
               <ChevronDown
                 size={16}
-                className={`transition-transform ${
-                  searchOpen ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${searchOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -499,7 +522,6 @@ const BusinessDirectory = () => {
                       />
                       <h2 className="font-semibold">{t.searchBusinesses}</h2>
                     </div>
-
                     <p className="mt-1 text-sm text-slate-400">
                       {t.searchDescription}
                     </p>
@@ -524,7 +546,6 @@ const BusinessDirectory = () => {
                         handleFilterChange("business_name", value)
                       }
                     />
-
                     <SearchField
                       label={t.category}
                       value={filters.category}
@@ -532,13 +553,11 @@ const BusinessDirectory = () => {
                         handleFilterChange("category", value)
                       }
                     />
-
                     <SearchField
                       label={t.village}
                       value={filters.village}
                       onChange={(value) => handleFilterChange("village", value)}
                     />
-
                     <SearchField
                       label={t.district}
                       value={filters.district}
@@ -546,25 +565,21 @@ const BusinessDirectory = () => {
                         handleFilterChange("district", value)
                       }
                     />
-
                     <SearchField
                       label={t.city}
                       value={filters.city}
                       onChange={(value) => handleFilterChange("city", value)}
                     />
-
                     <SearchField
                       label={t.state}
                       value={filters.state}
                       onChange={(value) => handleFilterChange("state", value)}
                     />
-
                     <SearchField
                       label={t.country}
                       value={filters.country}
                       onChange={(value) => handleFilterChange("country", value)}
                     />
-
                     <SearchField
                       label={t.pincode}
                       value={filters.pincode}
@@ -622,7 +637,6 @@ const BusinessDirectory = () => {
         {error && (
           <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-red-300">{error}</p>
-
             <button
               type="button"
               onClick={() =>
@@ -649,9 +663,7 @@ const BusinessDirectory = () => {
         ) : visibleBusinesses.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-16 text-center backdrop-blur-xl">
             <Building2 size={42} className="mx-auto mb-4 text-slate-500" />
-
             <h2 className="text-xl font-semibold">{t.noBusinesses}</h2>
-
             <p className="mt-2 text-sm text-slate-400">
               {t.noBusinessesDescription}
             </p>
@@ -690,36 +702,32 @@ const BusinessDirectory = () => {
           languageCode={languageCode}
           t={t}
           onClose={handleCloseModal}
+          onVisitProfile={handleVisitProfile}
         />
       )}
     </div>
   );
 };
 
-const SearchField = ({ label, value, onChange }) => {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-slate-400">
-        {label}
-      </span>
-
-      <input
-        type="text"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={label}
-        className="w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-indigo-400/50 focus:bg-white/10"
-      />
-    </label>
-  );
-};
+const SearchField = ({ label, value, onChange }) => (
+  <label className="block">
+    <span className="mb-1.5 block text-xs font-medium text-slate-400">
+      {label}
+    </span>
+    <input
+      type="text"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={label}
+      className="w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-indigo-400/50 focus:bg-white/10"
+    />
+  </label>
+);
 
 const BusinessCard = ({ business, languageCode, t, onClick }) => {
   const businessName =
     getText(business.business_name, languageCode) || t.notAvailable;
-
   const category = getText(business.category, languageCode) || t.notAvailable;
-
   const description =
     getText(business.description, languageCode) || t.notAvailable;
 
@@ -746,7 +754,6 @@ const BusinessCard = ({ business, languageCode, t, onClick }) => {
             <h2 className="truncate text-lg font-semibold text-white">
               {businessName}
             </h2>
-
             <p className="mt-0.5 truncate text-sm text-indigo-300">
               {category}
             </p>
@@ -797,25 +804,24 @@ const BusinessDetailsModal = ({
   languageCode,
   t,
   onClose,
+  onVisitProfile,
 }) => {
   const businessName =
     getText(business.business_name, languageCode) || t.notAvailable;
-
   const category = getText(business.category, languageCode) || t.notAvailable;
-
   const description =
     getText(business.description, languageCode) || t.notAvailable;
 
-  const locationParts = [
-    getText(business.village, languageCode),
-    getText(business.district, languageCode),
-    getText(business.city, languageCode),
-    getText(business.state, languageCode),
-    getText(business.country, languageCode),
-  ].filter(Boolean);
+  const targetOwnerId =
+    business?.owner_id || ownerContact?.owner_id || ownerContact?.user_id;
 
-  const phone = ownerContact?.phone_number || "";
-  const whatsappNumber = normalizePhoneForWhatsApp(phone);
+  const ownerName = getText(ownerContact?.owner_name, languageCode);
+  const ownerEmail = getText(ownerContact?.email, languageCode);
+  const ownerPhone = getText(
+    ownerContact?.phone_number || ownerContact?.phone,
+    languageCode,
+  );
+  const whatsappNumber = normalizePhoneForWhatsApp(ownerPhone);
 
   return (
     <div
@@ -837,7 +843,6 @@ const BusinessDetailsModal = ({
               <h2 className="truncate text-xl font-bold text-white sm:text-2xl">
                 {businessName}
               </h2>
-
               <p className="mt-1 text-sm text-indigo-300">{category}</p>
             </div>
           </div>
@@ -858,7 +863,6 @@ const BusinessDetailsModal = ({
               icon={<Building2 size={17} />}
               title={t.description}
             />
-
             <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
               <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">
                 {description}
@@ -868,34 +872,31 @@ const BusinessDetailsModal = ({
 
           <section className="mt-7">
             <SectionTitle icon={<MapPin size={17} />} title={t.location} />
-
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DetailItem
                 label={t.village}
                 value={getText(business.village, languageCode)}
               />
-
               <DetailItem
                 label={t.district}
                 value={getText(business.district, languageCode)}
               />
-
               <DetailItem
                 label={t.city}
                 value={getText(business.city, languageCode)}
               />
-
               <DetailItem
                 label={t.state}
                 value={getText(business.state, languageCode)}
               />
-
               <DetailItem
                 label={t.country}
                 value={getText(business.country, languageCode)}
               />
-
-              <DetailItem label={t.pincode} value={business.pincode} />
+              <DetailItem
+                label={t.pincode}
+                value={getText(business.pincode, languageCode)}
+              />
             </div>
           </section>
 
@@ -904,19 +905,17 @@ const BusinessDetailsModal = ({
               icon={<CircleDollarSign size={17} />}
               title={t.financial}
             />
-
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DetailItem
                 label={t.capital}
                 value={formatCapital(business.margin_capital)}
               />
-
               <DetailItem
                 label={t.status}
                 value={
-                  business.status === "active"
+                  getText(business.status, languageCode) === "active"
                     ? t.active
-                    : business.status || t.notAvailable
+                    : getText(business.status, languageCode) || t.notAvailable
                 }
               />
             </div>
@@ -924,10 +923,8 @@ const BusinessDetailsModal = ({
 
           <section className="mt-7">
             <SectionTitle icon={<Globe2 size={17} />} title={t.coordinates} />
-
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DetailItem label={t.latitude} value={business.latitude} />
-
               <DetailItem label={t.longitude} value={business.longitude} />
             </div>
           </section>
@@ -937,24 +934,18 @@ const BusinessDetailsModal = ({
               icon={<CalendarDays size={17} />}
               title={t.businessDetails}
             />
-
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DetailItem label={t.businessId} value={business.id} />
-
               <DetailItem
                 label={t.owner}
                 value={
-                  authenticated
-                    ? ownerContact?.owner_name || business.owner_id
-                    : t.notAvailable
+                  authenticated ? ownerName || targetOwnerId : t.notAvailable
                 }
               />
-
               <DetailItem
                 label={t.created}
                 value={formatDate(business.created_at)}
               />
-
               <DetailItem
                 label={t.updated}
                 value={formatDate(business.updated_at)}
@@ -962,11 +953,12 @@ const BusinessDetailsModal = ({
             </div>
           </section>
 
+          {/* Combined Owner Details, Visit Profile, and Contact Section (Restricted to Authenticated Users) */}
           <section className="mt-7">
             <SectionTitle icon={<User size={17} />} title={t.contactOwner} />
 
             {!authenticated ? (
-              <div className="rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-4">
+              <div className="rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-5">
                 <p className="text-sm leading-6 text-indigo-200">
                   {t.signInToContact}
                 </p>
@@ -978,73 +970,82 @@ const BusinessDetailsModal = ({
                 <div className="mt-3 h-4 w-44 animate-pulse rounded bg-white/10" />
               </div>
             ) : ownerContact ? (
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
                 <div className="space-y-4">
-                  {ownerContact.owner_name && (
+                  {ownerName && (
                     <div className="flex items-center gap-3">
                       <User size={17} className="text-slate-500" />
                       <div>
                         <p className="text-xs text-slate-500">{t.owner}</p>
-                        <p className="mt-0.5 text-sm text-white">
-                          {ownerContact.owner_name}
+                        <p className="mt-0.5 text-sm font-semibold text-white">
+                          {ownerName}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {ownerContact.email && (
+                  {ownerEmail && (
                     <div className="flex items-center gap-3">
                       <Mail size={17} className="text-slate-500" />
                       <div className="min-w-0">
                         <p className="text-xs text-slate-500">{t.email}</p>
                         <p className="mt-0.5 break-all text-sm text-white">
-                          {ownerContact.email}
+                          {ownerEmail}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {ownerContact.phone_number && (
+                  {ownerPhone && (
                     <div className="flex items-center gap-3">
                       <Phone size={17} className="text-slate-500" />
                       <div>
                         <p className="text-xs text-slate-500">{t.phone}</p>
                         <p className="mt-0.5 text-sm text-white">
-                          {ownerContact.phone_number}
+                          {ownerPhone}
                         </p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {(ownerContact.email || whatsappNumber) && (
-                  <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row">
-                    {ownerContact.email && (
-                      <a
-                        href={`mailto:${ownerContact.email}`}
-                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
-                      >
-                        <Mail size={17} />
-                        {t.email}
-                      </a>
-                    )}
+                <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row">
+                  {targetOwnerId && (
+                    <button
+                      type="button"
+                      onClick={() => onVisitProfile(targetOwnerId)}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                    >
+                      <User size={17} />
+                      {t.visitProfile}
+                    </button>
+                  )}
 
-                    {whatsappNumber && (
-                      <a
-                        href={`https://wa.me/${whatsappNumber}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-                      >
-                        <MessageCircle size={17} />
-                        {t.whatsapp}
-                      </a>
-                    )}
-                  </div>
-                )}
+                  {ownerEmail && (
+                    <a
+                      href={`mailto:${ownerEmail}`}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                    >
+                      <Mail size={17} />
+                      {t.email}
+                    </a>
+                  )}
+
+                  {whatsappNumber && (
+                    <a
+                      href={`https://wa.me/${whatsappNumber}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                    >
+                      <MessageCircle size={17} />
+                      {t.whatsapp}
+                    </a>
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
                 <p className="text-sm text-slate-400">{t.contactUnavailable}</p>
               </div>
             )}
@@ -1055,26 +1056,22 @@ const BusinessDetailsModal = ({
   );
 };
 
-const SectionTitle = ({ icon, title }) => {
-  return (
-    <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-200">
-      <span className="text-indigo-400">{icon}</span>
-      {title}
-    </div>
-  );
-};
+const SectionTitle = ({ icon, title }) => (
+  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-200">
+    <span className="text-indigo-400">{icon}</span>
+    {title}
+  </div>
+);
 
-const DetailItem = ({ label, value }) => {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3.5">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-sm text-slate-200">
-        {value !== null && value !== undefined && value !== ""
-          ? String(value)
-          : "-"}
-      </p>
-    </div>
-  );
-};
+const DetailItem = ({ label, value }) => (
+  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3.5">
+    <p className="text-xs font-medium text-slate-500">{label}</p>
+    <p className="mt-1 break-words text-sm text-slate-200">
+      {value !== null && value !== undefined && value !== ""
+        ? String(value)
+        : "-"}
+    </p>
+  </div>
+);
 
 export default BusinessDirectory;

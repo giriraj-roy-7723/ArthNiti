@@ -10,6 +10,7 @@ import Signup from "./pages/Signup";
 // import Chatbot from "./pages/Chatbot";
 import MyBusinesses from "./pages/business/MyBusinesses";
 import Profile from "./pages/Profile";
+import UserProfile from "./pages/UserProfile";
 import BusinessWorkspace from "./pages/business/business_advisory/BusinessWorkspace";
 import BusinessAnalysis from "./pages/business/business_advisory/BusinessAnalysis";
 import FinancialAnalysis from "./pages/business/business_advisory/FinancialAnalysis";
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="/signup" element={<Signup />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<UserProfile />} />
               <Route path="/businesses" element={<MyBusinesses />} />
               <Route
                 path="/businesses/:businessId"
@@ -80,10 +82,7 @@ export default function App() {
                 element={<GovernmentSchemes />}
               />
 
-              <Route
-                path="/businesses/details"
-                element={<BusinessDetails />}
-              />
+              <Route path="/businesses/details" element={<BusinessDetails />} />
             </Routes>
           </MainLayout>
         </LanguageProvider>
