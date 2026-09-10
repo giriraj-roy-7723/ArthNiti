@@ -152,7 +152,7 @@ const Login = () => {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
                   id="remember-me"
@@ -160,23 +160,23 @@ const Login = () => {
                   type="checkbox"
                   className="h-4 w-4 rounded border-gray-700 bg-gray-950 text-blue-600 focus:ring-blue-600 shadow-inner"
                 />
-                {/* <label
+                <label
                   htmlFor="remember-me"
                   className="ml-2 block text-sm text-gray-400"
                 >
                   {t.remember}
-                </label> */}
+                </label>
               </div>
 
               <div className="text-sm">
-                {/* <a
+                <a
                   href="#"
                   className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   {t.forgot}
-                </a> */}
+                </a>
               </div>
-            </div>
+            </div> */}
 
             <button
               type="submit"

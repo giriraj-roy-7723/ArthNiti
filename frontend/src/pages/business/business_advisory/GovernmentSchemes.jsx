@@ -251,6 +251,110 @@ const initialForm = {
   land_ownership: "",
 };
 
+// Formatter to split running paragraphs into structured bullet points, badges, and headers
+const renderFormattedContent = (
+  content,
+  defaultTextColor = "text-gray-400",
+) => {
+  if (!content) return <span className="text-gray-600">—</span>;
+
+  let cleaned = String(content)
+    .replace(/\t/g, " ")
+    .replace(/\r\n/g, "\n")
+    .replace(/\uFEFF/g, "")
+    .trim();
+
+  // Break lines before numbered lists (e.g. 1. or 1)) or Notes
+  cleaned = cleaned.replace(/([.?!])\s+(\d+[\.\)]\s+)/g, "$1\n$2");
+  cleaned = cleaned.replace(/([.?!])\s+(Note\s*\d*:)/gi, "$1\n$2");
+
+  const lines = cleaned
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="space-y-2">
+      {lines.map((line, idx) => {
+        // Match numbered points: "1.", "1)", "10+1" handled carefully
+        const numberedMatch = line.match(/^(\d+[\.\)])\s*(.+)$/);
+        // Match Note prefixes: "Note 1:", "Note:"
+        const noteMatch = line.match(/^(Note(?:\s*\d*)?:?)\s*(.+)$/i);
+        // Match bullet markers: "*", "-", "•"
+        const bulletMatch = line.match(/^[\*\-•]\s*(.+)$/);
+        // Match ALL CAPS headings (e.g., CAPITAL SUBSIDY STRUCTURE)
+        const isHeader =
+          line.length < 55 &&
+          /^[A-Z0-9\s/&()-]+$/.test(line) &&
+          !line.includes("₹") &&
+          line.split(" ").length <= 7;
+
+        if (isHeader) {
+          return (
+            <div
+              key={idx}
+              className="mt-3 pt-1 text-xs font-bold uppercase tracking-wider text-blue-400"
+            >
+              {line}
+            </div>
+          );
+        }
+
+        if (numberedMatch) {
+          return (
+            <div key={idx} className="flex items-start gap-2.5">
+              <span className="shrink-0 rounded bg-gray-800 px-1.5 py-0.5 text-xs font-mono font-medium text-gray-300">
+                {numberedMatch[1]}
+              </span>
+              <span
+                className={`text-xs leading-5 sm:text-sm ${defaultTextColor}`}
+              >
+                {numberedMatch[2]}
+              </span>
+            </div>
+          );
+        }
+
+        if (noteMatch) {
+          return (
+            <div
+              key={idx}
+              className="my-1 rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-xs text-amber-300/90 leading-relaxed"
+            >
+              <span className="font-semibold text-amber-400">
+                {noteMatch[1]}{" "}
+              </span>
+              {noteMatch[2]}
+            </div>
+          );
+        }
+
+        if (bulletMatch) {
+          return (
+            <div key={idx} className="flex items-start gap-2">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400/80" />
+              <span
+                className={`text-xs leading-5 sm:text-sm ${defaultTextColor}`}
+              >
+                {bulletMatch[1]}
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <p
+            key={idx}
+            className={`text-xs leading-relaxed sm:text-sm ${defaultTextColor}`}
+          >
+            {line}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 const GovernmentSchemes = () => {
   const { businessId } = useParams();
   const navigate = useNavigate();
@@ -428,12 +532,6 @@ const GovernmentSchemes = () => {
       "_blank",
       "noopener,noreferrer",
     );
-  };
-
-  const renderTextarea = (value) => {
-    if (!value) return "—";
-
-    return String(value).replace(/\t/g, " ").replace(/\r\n/g, "\n").trim();
   };
 
   const inputClass =
@@ -791,22 +889,24 @@ const GovernmentSchemes = () => {
             </div>
           </div>
 
-          <BusinessScopeBadge
-            businessId={businessId}
-            className="self-end lg:self-auto"
-          />
+          <div className="flex items-center gap-3">
+            <BusinessScopeBadge
+              businessId={businessId}
+              className="self-end lg:self-auto"
+            />
 
-          <button
-            type="button"
-            onClick={() => {
-              setError("");
-              setShowForm(true);
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-800 bg-gray-900 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:border-gray-700 hover:text-white"
-          >
-            <RefreshCw size={16} />
-            {t.regenerate}
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setShowForm(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-800 bg-gray-900 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:border-gray-700 hover:text-white"
+            >
+              <RefreshCw size={16} />
+              {t.regenerate}
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -859,7 +959,7 @@ const GovernmentSchemes = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {schemes.map((scheme, index) => {
               const schemeUrl = urls[scheme.scheme_id];
               const similarity = Number(scheme.similarity_score);
@@ -867,84 +967,94 @@ const GovernmentSchemes = () => {
               return (
                 <div
                   key={`${scheme.scheme_id}-${index}`}
-                  className="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/60 backdrop-blur-xl"
+                  className="flex h-[620px] flex-col rounded-2xl border border-gray-800 bg-gray-900/60 shadow-lg backdrop-blur-xl transition hover:border-gray-700/80"
                 >
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-4">
+                  {/* Fixed Card Header */}
+                  <div className="border-b border-gray-800/80 p-5 sm:p-6">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
-                          <Landmark size={21} className="text-blue-400" />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
+                          <Landmark size={20} className="text-blue-400" />
                         </div>
 
                         <div className="min-w-0">
-                          <h2 className="text-lg font-bold leading-7 text-white">
+                          <h2 className="line-clamp-2 text-base font-bold leading-6 text-white sm:text-lg">
                             {scheme.name}
                           </h2>
-
-                          <p className="mt-1 text-xs text-gray-600">
-                            {t.schemeId}: {scheme.scheme_id}
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {t.schemeId}:{" "}
+                            <span className="font-mono text-gray-400">
+                              {scheme.scheme_id}
+                            </span>
                           </p>
                         </div>
                       </div>
 
                       {Number.isFinite(similarity) && (
-                        <span className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
+                        <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
                           {Math.round(similarity * 100)}% {t.match}
                         </span>
                       )}
                     </div>
+                  </div>
 
-                    {scheme.description && (
-                      <div className="mt-6">
-                        <h3 className="text-sm font-bold text-gray-300">
-                          {t.description}
+                  {/* Scrollable Structured Content Body */}
+                  <div className="flex-1 space-y-5 overflow-y-auto p-5 sm:p-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-800 hover:scrollbar-thumb-gray-700">
+                    {scheme.benefits && (
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-400">
+                          {t.benefits}
                         </h3>
-                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-500">
-                          {renderTextarea(scheme.description)}
-                        </p>
+                        {renderFormattedContent(
+                          scheme.benefits,
+                          "text-gray-300",
+                        )}
                       </div>
                     )}
 
-                    {scheme.benefits && (
-                      <div className="mt-6 rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-4">
-                        <h3 className="text-sm font-bold text-emerald-400">
-                          {t.benefits}
+                    {scheme.description && (
+                      <div className="rounded-xl border border-gray-800/60 bg-gray-950/40 p-4">
+                        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                          {t.description}
                         </h3>
-                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-400">
-                          {renderTextarea(scheme.benefits)}
-                        </p>
+                        {renderFormattedContent(
+                          scheme.description,
+                          "text-gray-400",
+                        )}
                       </div>
                     )}
 
                     {scheme.eligibility_criteria && (
-                      <div className="mt-6">
-                        <h3 className="text-sm font-bold text-gray-300">
+                      <div className="rounded-xl border border-gray-800/60 bg-gray-950/40 p-4">
+                        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
                           {t.eligibility}
                         </h3>
-                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-500">
-                          {renderTextarea(scheme.eligibility_criteria)}
-                        </p>
+                        {renderFormattedContent(
+                          scheme.eligibility_criteria,
+                          "text-gray-400",
+                        )}
                       </div>
                     )}
+                  </div>
 
-                    <div className="mt-6 border-t border-gray-800 pt-5">
-                      {schemeUrl?.is_fallback || !schemeUrl?.url ? (
-                        <p className="mb-3 text-xs leading-5 text-gray-600">
-                          {t.fallbackNotice}
-                        </p>
-                      ) : null}
+                  {/* Card Action Footer */}
+                  <div className="border-t border-gray-800/80 bg-gray-950/30 p-4 sm:px-6">
+                    {schemeUrl?.is_fallback || !schemeUrl?.url ? (
+                      <p className="mb-2.5 text-center text-xs leading-5 text-gray-500">
+                        {t.fallbackNotice}
+                      </p>
+                    ) : null}
 
-                      <button
-                        type="button"
-                        onClick={() => openScheme(scheme)}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-400"
-                      >
-                        <ExternalLink size={16} />
-                        {schemeUrl?.is_fallback || !schemeUrl?.url
-                          ? t.myScheme
-                          : t.viewScheme}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openScheme(scheme)}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-500 active:scale-[0.99]"
+                    >
+                      <ExternalLink size={16} />
+                      {schemeUrl?.is_fallback || !schemeUrl?.url
+                        ? t.myScheme
+                        : t.viewScheme}
+                    </button>
                   </div>
                 </div>
               );
