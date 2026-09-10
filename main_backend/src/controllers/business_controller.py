@@ -1,19 +1,28 @@
 import asyncio
 from fastapi import HTTPException, status
 
-from sqlalchemy import select,func
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schema.user import User
 from src.schema.business import Business, BusinessStatus
-from src.models.business_request import BusinessCreateRequest, BusinessResponse, BusinessOwnerContactResponse
+from src.models.business_request import (
+    BusinessCreateRequest,
+    BusinessImagesResponse,
+    BusinessImagesUpdateRequest,
+    BusinessResponse,
+    BusinessOwnerContactResponse,
+)
 
 from src.utils.translator_utils import translate_entry
 from src.utils.geo_utils import get_coordinates
 from src.utils.business_category_verifier import normalize_and_validate_category
 
-from src.services.distance_service import ensure_user_coordinates,calculate_haversine_distance
+from src.services.distance_service import (
+    ensure_user_coordinates,
+    calculate_haversine_distance,
+)
 
 
 MULTILINGUAL_BUSINESS_FIELDS = [
@@ -549,6 +558,77 @@ def _build_business_response(business: Business, lang_code: str) -> BusinessResp
     )
 
 
+async def get_business_images(
+    business_id: str,
+    db: AsyncSession,
+) -> BusinessImagesResponse:
+    result = await db.execute(select(Business).where(Business.id == business_id))
+    business = result.scalar_one_or_none()
+
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    return BusinessImagesResponse(
+        business_id=business.id,
+        image_urls=business.image_urls or [],
+    )
+
+
+async def update_business_images(
+    business_id: str,
+    owner_id: str,
+    data: BusinessImagesUpdateRequest,
+    db: AsyncSession,
+    append: bool = False,
+) -> BusinessImagesResponse:
+    result = await db.execute(
+        select(Business).where(
+            Business.id == business_id,
+            Business.owner_id == owner_id,
+        )
+    )
+    business = result.scalar_one_or_none()
+
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    incoming_urls = [str(url) for url in data.image_urls]
+    existing_urls = business.image_urls or []
+    image_urls = existing_urls + incoming_urls if append else incoming_urls
+
+    # Preserve upload order while avoiding duplicate URLs.
+    business.image_urls = list(dict.fromkeys(image_urls)) or None
+
+    await db.commit()
+    await db.refresh(business)
+
+    return BusinessImagesResponse(
+        business_id=business.id,
+        image_urls=business.image_urls or [],
+    )
+
+
+async def clear_business_images(
+    business_id: str,
+    owner_id: str,
+    db: AsyncSession,
+) -> BusinessImagesResponse:
+    result = await db.execute(
+        select(Business).where(
+            Business.id == business_id,
+            Business.owner_id == owner_id,
+        )
+    )
+    business = result.scalar_one_or_none()
+
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    business.image_urls = None
+    await db.commit()
+
+    return BusinessImagesResponse(business_id=business.id, image_urls=[])
+
 
 async def search_businesses(
     db: AsyncSession,
@@ -837,6 +917,7 @@ async def get_active_businesses(
     await db.commit()
 
     return responses
+
 
 async def get_business_owner_contact(
     business_id: str,

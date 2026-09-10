@@ -11,12 +11,17 @@ from src.controllers.business_controller import (
     search_other_businesses,
     get_active_businesses,
     get_business_owner_contact,
+    get_business_images,
+    update_business_images,
+    clear_business_images,
 )
 from src.middlewares.auth import verify_token
 from src.models.business_request import (
     BusinessCreateRequest,
     BusinessResponse,
     BusinessOwnerContactResponse,
+    BusinessImagesResponse,
+    BusinessImagesUpdateRequest,
 )
 from src.schema.business import BusinessStatus
 
@@ -110,6 +115,7 @@ async def search_businesses_route(
 # =========================================================
 # OTHER BUSINESSES
 # =========================================================
+
 
 # Optional token resolver helper:
 async def get_optional_user_id(
@@ -231,6 +237,78 @@ async def get_business_owner_contact_route(
 # =========================================================
 # GET SINGLE BUSINESS
 # =========================================================
+
+
+@router.get(
+    "/{business_id}/images",
+    response_model=BusinessImagesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get business image URLs",
+)
+async def get_business_images_route(
+    business_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_business_images(business_id=business_id, db=db)
+
+
+@router.put(
+    "/{business_id}/images",
+    response_model=BusinessImagesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Replace business image URLs",
+)
+async def replace_business_images_route(
+    business_id: str,
+    data: BusinessImagesUpdateRequest,
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_business_images(
+        business_id=business_id,
+        owner_id=user_id,
+        data=data,
+        db=db,
+    )
+
+
+@router.post(
+    "/{business_id}/images",
+    response_model=BusinessImagesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Append business image URLs",
+)
+async def append_business_images_route(
+    business_id: str,
+    data: BusinessImagesUpdateRequest,
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_business_images(
+        business_id=business_id,
+        owner_id=user_id,
+        data=data,
+        db=db,
+        append=True,
+    )
+
+
+@router.delete(
+    "/{business_id}/images",
+    response_model=BusinessImagesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Clear business image URLs",
+)
+async def clear_business_images_route(
+    business_id: str,
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await clear_business_images(
+        business_id=business_id,
+        owner_id=user_id,
+        db=db,
+    )
 
 
 @router.get(

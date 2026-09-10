@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, EmailStr
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, HttpUrl
 
 
 from src.schema.business import BusinessStatus
@@ -30,6 +30,15 @@ class BusinessResponse(BusinessCreateRequest):
     status: BusinessStatus
     created_at: datetime
     updated_at: datetime
+
+
+class BusinessImagesUpdateRequest(BaseModel):
+    image_urls: list[HttpUrl] = Field(default_factory=list, max_length=20)
+
+
+class BusinessImagesResponse(BaseModel):
+    business_id: str
+    image_urls: list[str] = Field(default_factory=list)
 
 
 
