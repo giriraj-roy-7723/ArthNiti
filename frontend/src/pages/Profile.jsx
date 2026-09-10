@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "../utils/supabase";
 import {
   User,
   Mail,
@@ -23,12 +24,22 @@ import { useLanguage } from "../context/LanguageContext";
 
 const PROFILE_ENDPOINT = "/auth/me";
 
+
+
+
+
+
+
 const Profile = () => {
   const { language } = useLanguage();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
 
   const translations = {
     english: {
@@ -214,7 +225,68 @@ const Profile = () => {
   // =========================================================
   // Fetch profile
   // =========================================================
+  const handleImageUpload = async (event) => {
+      const file = event.target.files?.[0];
 
+      if (!file) return;
+
+      setImageError("");
+      setUploadingImage(true);
+
+      try {
+        // Only allow images
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Please select an image file.");
+        }
+
+        // Create a unique file name
+        const fileExtension = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2)}.${fileExtension}`;
+
+        // Upload image to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from("profile-images")
+          .upload(fileName, file);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from("profile-images")
+          .getPublicUrl(fileName);
+
+        const imageUrl = publicUrlData.publicUrl;
+
+        // Update profile_pic in users table through your backend
+        await api.patch("/auth/me", {
+          profile_pic: imageUrl,
+        });
+
+        // Update displayed profile immediately
+        setProfile((prev) => ({
+          ...prev,
+          profile_pic: imageUrl,
+          profile_image: imageUrl,
+        }));
+      } catch (err) {
+        console.error("Image upload failed:", err);
+
+        setImageError(
+          err.response?.data?.detail ||
+            err.message ||
+            "Failed to upload image."
+        );
+      } finally {
+        setUploadingImage(false);
+
+        // Allow selecting the same image again
+        event.target.value = "";
+      }
+    };
   const fetchProfile = async () => {
     try {
       setLoading(true);
@@ -617,21 +689,41 @@ const Profile = () => {
 
             <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
               {/* Profile image */}
-              <div className="relative shrink-0">
-                {profile.profile_image ? (
-                  <img
-                    src={profile.profile_image}
-                    alt={`${profile.first_name || ""} ${
-                      profile.last_name || ""
-                    }`}
-                    className="h-24 w-24 rounded-2xl border border-gray-700 object-cover shadow-xl sm:h-28 sm:w-28"
-                  />
-                ) : (
-                  <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-2xl font-extrabold text-blue-400 shadow-xl sm:h-28 sm:w-28 sm:text-3xl">
-                    {getInitials()}
-                  </div>
-                )}
-              </div>
+                          {/* Profile image */}
+            <div className="relative shrink-0">
+
+              {profile.profile_image || profile.profile_pic ? (
+                <img
+                  src={profile.profile_image || profile.profile_pic}
+                  alt={`${profile.first_name || ""} ${
+                    profile.last_name || ""
+                  }`}
+                  className="h-24 w-24 rounded-2xl border border-gray-700 object-cover shadow-xl sm:h-28 sm:w-28"
+                />
+              ) : (
+                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-2xl font-extrabold text-blue-400 shadow-xl sm:h-28 sm:w-28 sm:text-3xl">
+                  {getInitials()}
+                </div>
+              )}
+
+              {/* Upload button */}
+              <label
+                htmlFor="profile-image-upload"
+                className="absolute -bottom-2 -right-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-gray-700 bg-gray-900 text-gray-300 shadow-lg transition hover:bg-gray-800 hover:text-white"
+              >
+                <Pencil size={15} />
+              </label>
+
+              <input
+                id="profile-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+                className="hidden"
+              />
+
+            </div>
 
               {/* Main identity */}
               <div className="min-w-0 flex-1">

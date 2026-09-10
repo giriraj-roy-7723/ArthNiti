@@ -60,3 +60,17 @@ async def update_profile(
         user_id=user_id,
         db=db,
     )
+
+@router.patch("/me")
+async def patch_my_profile(
+    data: UserUpdateRequest,
+    language: str = "english",
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_my_profile(
+        data=data,
+        language=language,
+        user_id=user_id,
+        db=db,
+    )
