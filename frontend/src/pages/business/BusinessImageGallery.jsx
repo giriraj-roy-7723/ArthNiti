@@ -53,7 +53,9 @@ const BusinessImageGallery = ({
 
     try {
       if (files.length > MAX_IMAGES_PER_UPLOAD) {
-        throw new Error(`You can upload up to ${MAX_IMAGES_PER_UPLOAD} images at once.`);
+        throw new Error(
+          `You can upload up to ${MAX_IMAGES_PER_UPLOAD} images at once.`,
+        );
       }
 
       if (files.some((file) => !file.type.startsWith("image/"))) {
