@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.database import get_db
@@ -9,6 +9,7 @@ from src.controllers.business_controller import (
     mark_business_state,
     search_businesses,
     search_other_businesses,
+    get_active_businesses
 )
 from src.middlewares.auth import verify_token
 from src.models.business_request import BusinessCreateRequest, BusinessResponse
@@ -141,6 +142,25 @@ async def search_other_businesses_route(
     )
 
 
+
+@router.get(
+    "/public/active",
+    response_model=list[BusinessResponse],
+    summary="Get active businesses for public directory",
+)
+async def list_active_businesses(
+    language: str = Query("en", description="Target language code (e.g., en, hi, bn)"),
+    limit: int = Query(20, ge=1, le=100, description="Number of items to fetch"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_active_businesses(
+        language=language,
+        db=db,
+        limit=limit,
+        offset=offset,
+    )
+
 # =========================================================
 # UPDATE BUSINESS STATUS
 # =========================================================
@@ -187,3 +207,5 @@ async def get_business_route(
         owner_id=user_id,
         db=db,
     )
+
+

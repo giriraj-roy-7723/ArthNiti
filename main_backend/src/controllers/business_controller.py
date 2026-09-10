@@ -676,3 +676,59 @@ async def search_other_businesses(
     await db.commit()
 
     return responses
+
+
+async def get_active_businesses(
+    language: str,
+    db: AsyncSession,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[BusinessResponse]:
+    lang_code = normalize_language(language)
+
+    # Adjust BusinessStatus.active to match the exact active enum in BusinessStatus
+    query = (
+        select(Business)
+        .where(Business.status == BusinessStatus.active)
+        .order_by(Business.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+
+    result = await db.execute(query)
+    businesses = result.scalars().all()
+
+    responses = []
+
+    for business in businesses:
+        await ensure_business_language(
+            business=business,
+            target_language=lang_code,
+            db=db,
+        )
+
+        responses.append(
+            BusinessResponse(
+                id=business.id,
+                owner_id=business.owner_id,
+                business_name=(business.business_name or {}).get(lang_code, ""),
+                category=(business.category or {}).get(lang_code, ""),
+                description=(business.description or {}).get(lang_code),
+                village=(business.village or {}).get(lang_code),
+                district=(business.district or {}).get(lang_code, ""),
+                city=(business.city or {}).get(lang_code),
+                state=(business.state or {}).get(lang_code, ""),
+                country=(business.country or {}).get(lang_code, ""),
+                margin_capital=business.margin_capital,
+                pincode=business.pincode,
+                latitude=business.latitude,
+                longitude=business.longitude,
+                status=business.status,
+                created_at=business.created_at,
+                updated_at=business.updated_at,
+            )
+        )
+
+    await db.commit()
+
+    return responses
