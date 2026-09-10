@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Building2,
   MapPin,
@@ -9,9 +9,51 @@ import {
   Check,
   Navigation,
 } from "lucide-react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+  useMap,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { api } from "../../utils/api";
 
+// Fix Leaflet marker icon asset resolution in Vite/Webpack
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
 const CREATE_BUSINESS_ENDPOINT = "/businesses/create";
+
+// Component to handle map clicks and marker positioning
+const LocationPickerMarker = ({ position, onLocationSelect }) => {
+  useMapEvents({
+    click(e) {
+      onLocationSelect(e.latlng.lat, e.latlng.lng);
+    },
+  });
+
+  return position ? <Marker position={position} /> : null;
+};
+
+// Component to dynamically re-center map view when coordinates/searches change
+const MapUpdater = ({ center, zoom }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.setView(center, zoom || 13);
+    }
+  }, [center, zoom, map]);
+  return null;
+};
 
 const InputField = ({
   name,
@@ -42,11 +84,7 @@ const InputField = ({
       required={required}
       disabled={disabled}
       min={type === "number" ? "0" : undefined}
-      step={
-        name === "latitude" || name === "longitude" || name === "margin_capital"
-          ? "any"
-          : undefined
-      }
+      step={name === "margin_capital" ? "any" : undefined}
       className="w-full rounded-xl border border-gray-700 bg-gray-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60"
     />
   </div>
@@ -67,12 +105,64 @@ const INITIAL_FORM_STATE = {
   longitude: "",
 };
 
+// Default map view: Center of India
+const DEFAULT_CENTER = [20.5937, 78.9629];
+const DEFAULT_ZOOM = 4;
+
 const CreateBusinessModal = ({ isOpen, onClose, onSuccess, language, t }) => {
   const [businessForm, setBusinessForm] = useState(INITIAL_FORM_STATE);
   const [useProfileLocation, setUseProfileLocation] = useState(null);
   const [creatingBusiness, setCreatingBusiness] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [createError, setCreateError] = useState("");
+
+  const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
+  const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Automatically adjust map when user enters/updates location strings
+  useEffect(() => {
+    const queryParts = [
+      businessForm.city,
+      businessForm.district,
+      businessForm.state,
+      businessForm.country,
+    ]
+      .map((p) => String(p || "").trim())
+      .filter(Boolean);
+
+    if (queryParts.length === 0) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsGeocoding(true);
+        const searchQuery = queryParts.join(", ");
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            searchQuery,
+          )}&limit=1`,
+        );
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          setMapCenter([lat, lon]);
+          setMapZoom(businessForm.city ? 12 : 7);
+        }
+      } catch (err) {
+        console.warn("Geocoding lookup failed:", err);
+      } finally {
+        setIsGeocoding(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [
+    businessForm.city,
+    businessForm.district,
+    businessForm.state,
+    businessForm.country,
+  ]);
 
   if (!isOpen) return null;
 
@@ -81,12 +171,24 @@ const CreateBusinessModal = ({ isOpen, onClose, onSuccess, language, t }) => {
     setBusinessForm(INITIAL_FORM_STATE);
     setUseProfileLocation(null);
     setCreateError("");
+    setMapCenter(DEFAULT_CENTER);
+    setMapZoom(DEFAULT_ZOOM);
     onClose();
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setBusinessForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleMapLocationSelect = (lat, lng) => {
+    const fixedLat = Number(lat.toFixed(6));
+    const fixedLng = Number(lng.toFixed(6));
+    setBusinessForm((prev) => ({
+      ...prev,
+      latitude: fixedLat,
+      longitude: fixedLng,
+    }));
   };
 
   const handleUseProfileLocation = async () => {
@@ -128,6 +230,8 @@ const CreateBusinessModal = ({ isOpen, onClose, onSuccess, language, t }) => {
       state: "",
       country: "",
       pincode: "",
+      latitude: "",
+      longitude: "",
     }));
   };
 
@@ -190,6 +294,11 @@ const CreateBusinessModal = ({ isOpen, onClose, onSuccess, language, t }) => {
       setCreatingBusiness(false);
     }
   };
+
+  const markerPosition =
+    businessForm.latitude !== "" && businessForm.longitude !== ""
+      ? [Number(businessForm.latitude), Number(businessForm.longitude)]
+      : null;
 
   return (
     <div
@@ -391,7 +500,7 @@ const CreateBusinessModal = ({ isOpen, onClose, onSuccess, language, t }) => {
               </div>
             </div>
 
-            {/* Location Information */}
+            {/* Location Address Fields */}
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -456,22 +565,85 @@ const CreateBusinessModal = ({ isOpen, onClose, onSuccess, language, t }) => {
                   onChange={handleFormChange}
                   disabled={useProfileLocation === true}
                 />
-                <InputField
-                  name="latitude"
-                  label={t.latitude}
-                  placeholder={t.latitudePlaceholder}
-                  value={businessForm.latitude}
-                  onChange={handleFormChange}
-                  type="number"
-                />
-                <InputField
-                  name="longitude"
-                  label={t.longitude}
-                  placeholder={t.longitudePlaceholder}
-                  value={businessForm.longitude}
-                  onChange={handleFormChange}
-                  type="number"
-                />
+              </div>
+            </div>
+
+            {/* Interactive Leaflet Map for Pinning Precise Coordinates */}
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-300">
+                    Pin Exact Business Location on Map (Optional)
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Click anywhere on the map to place or move your location
+                    pin.
+                  </p>
+                </div>
+                {isGeocoding && (
+                  <div className="flex items-center gap-1.5 text-xs text-blue-400">
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Focusing map...</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-gray-700 bg-gray-950">
+                <div className="h-64 w-full">
+                  <MapContainer
+                    center={mapCenter}
+                    zoom={mapZoom}
+                    scrollWheelZoom={false}
+                    className="h-full w-full z-0"
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <MapUpdater center={mapCenter} zoom={mapZoom} />
+                    <LocationPickerMarker
+                      position={markerPosition}
+                      onLocationSelect={handleMapLocationSelect}
+                    />
+                  </MapContainer>
+                </div>
+
+                {/* Coordinate status readout */}
+                <div className="flex items-center justify-between border-t border-gray-800 bg-gray-900/80 px-4 py-2.5 text-xs text-gray-400">
+                  {markerPosition ? (
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                      <span>
+                        Pinned:{" "}
+                        <strong className="text-white">
+                          {businessForm.latitude}
+                        </strong>
+                        ,{" "}
+                        <strong className="text-white">
+                          {businessForm.longitude}
+                        </strong>
+                      </span>
+                    </div>
+                  ) : (
+                    <span>Click on the map to set coordinates</span>
+                  )}
+
+                  {markerPosition && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBusinessForm((prev) => ({
+                          ...prev,
+                          latitude: "",
+                          longitude: "",
+                        }))
+                      }
+                      className="text-xs font-semibold text-red-400 hover:text-red-300"
+                    >
+                      Clear Pin
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

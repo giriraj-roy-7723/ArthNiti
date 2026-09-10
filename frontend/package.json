@@ -13,9 +13,11 @@
     "@supabase/supabase-js": "^2.116.0",
     "axios": "^1.20.0",
     "country-state-city": "^3.2.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.43.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.3",
     "remark-gfm": "^4.0.1"

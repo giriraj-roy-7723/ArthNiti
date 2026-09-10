@@ -1,28 +1,32 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import "leaflet/dist/leaflet.css";
+
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider } from "./context/AuthContext";
 import MainLayout from "./layouts/MainLayout";
+
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-// import FinanceAnalyser from "./pages/FinanceAnalyser";
-// import GovernmentSchemes from "./pages/GovernmentSchemes";
-// import Chatbot from "./pages/Chatbot";
-import MyBusinesses from "./pages/business/MyBusinesses";
 import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
+
+import MyBusinesses from "./pages/business/MyBusinesses";
 import BusinessWorkspace from "./pages/business/business_advisory/BusinessWorkspace";
 import BusinessAnalysis from "./pages/business/business_advisory/BusinessAnalysis";
 import FinancialAnalysis from "./pages/business/business_advisory/FinancialAnalysis";
 import GovernmentSchemes from "./pages/business/business_advisory/GovernmentSchemes";
+
 import PopulationAnalysis from "./pages/business/business_advisory/business_analysis/PopulationAnalysis";
 import CompetitionAnalysis from "./pages/business/business_advisory/business_analysis/CompetitionAnalysis";
 import SeasonalityAnalysis from "./pages/business/business_advisory/business_analysis/SeasonalityAnalysis";
 import MarketPrices from "./pages/business/business_advisory/business_analysis/MarketPrices";
 import SupplyChainAnalysis from "./pages/business/business_advisory/business_analysis/SupplyChainAnalysis";
 import TransportationAnalysis from "./pages/business/business_advisory/business_analysis/TransportationAnalysis";
+
 import Dashboard from "./pages/Dashboard";
-import BusinessDetails from "./pages/business/BusinessDetails";
+
+import BusinessDetails from "./pages/business/business_detail/BusinessDetails";
 
 export default function App() {
   return (

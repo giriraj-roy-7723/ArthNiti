@@ -2,22 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
-  CalendarDays,
   CheckCircle2,
   ChevronDown,
   CircleDollarSign,
-  Globe2,
-  Mail,
   MapPin,
-  MessageCircle,
-  Phone,
   Search,
   SlidersHorizontal,
-  User,
   X,
 } from "lucide-react";
-import { api } from "../../utils/api";
-import { useLanguage } from "../../context/LanguageContext";
+import { api } from "../../../utils/api";
+import { useLanguage } from "../../../context/LanguageContext";
+import BusinessDetailsModal from "./BusinessDetailsModal";
 
 const translations = {
   english: {
@@ -50,7 +45,6 @@ const translations = {
     location: "Location",
     financial: "Financial information",
     capital: "Margin capital",
-    coordinates: "Coordinates",
     status: "Status",
     owner: "Owner",
     contactOwner: "Owner Information & Contact",
@@ -63,8 +57,6 @@ const translations = {
       "Sign in to view owner details, visit their profile, and contact them.",
     created: "Created",
     updated: "Updated",
-    latitude: "Latitude",
-    longitude: "Longitude",
     businessId: "Business ID",
     notAvailable: "Not available",
     active: "Active",
@@ -101,7 +93,6 @@ const translations = {
     location: "स्थान",
     financial: "वित्तीय जानकारी",
     capital: "मार्जिन पूंजी",
-    coordinates: "निर्देशांक",
     status: "स्थिति",
     owner: "मालिक",
     contactOwner: "मालिक की जानकारी और संपर्क",
@@ -114,8 +105,6 @@ const translations = {
       "मालिक की जानकारी देखने, प्रोफ़ाइल देखने और संपर्क करने के लिए साइन इन करें।",
     created: "बनाया गया",
     updated: "अपडेट किया गया",
-    latitude: "अक्षांश",
-    longitude: "देशांतर",
     businessId: "व्यवसाय आईडी",
     notAvailable: "उपलब्ध नहीं",
     active: "सक्रिय",
@@ -153,7 +142,6 @@ const translations = {
     location: "অবস্থান",
     financial: "আর্থিক তথ্য",
     capital: "মার্জিন মূলধন",
-    coordinates: "স্থানাঙ্ক",
     status: "স্থিতি",
     owner: "মালিক",
     contactOwner: "মালিকের তথ্য ও যোগাযোগ",
@@ -166,8 +154,6 @@ const translations = {
       "মালিকের বিবরণ দেখতে, প্রোফাইল দেখতে এবং যোগাযোগ করতে সাইন ইন করুন।",
     created: "তৈরি হয়েছে",
     updated: "আপডেট হয়েছে",
-    latitude: "অক্ষাংশ",
-    longitude: "দ্রাঘিমাংশ",
     businessId: "ব্যবসা আইডি",
     notAvailable: "পাওয়া যায়নি",
     active: "সক্রিয়",
@@ -201,7 +187,6 @@ const getLanguageKey = (language) => {
   const normalized = String(language || "english")
     .toLowerCase()
     .trim();
-
   if (["hindi", "hi", "hin"].includes(normalized)) return "hindi";
   if (["bengali", "bn", "bng"].includes(normalized)) return "bengali";
   return "english";
@@ -209,10 +194,8 @@ const getLanguageKey = (language) => {
 
 const getText = (value, languageCode) => {
   if (value === null || value === undefined || value === "") return "";
-
-  if (typeof value === "string" || typeof value === "number") {
+  if (typeof value === "string" || typeof value === "number")
     return String(value);
-  }
 
   if (Array.isArray(value)) {
     return value
@@ -246,40 +229,16 @@ const getText = (value, languageCode) => {
         item !== "" &&
         typeof item !== "object",
     );
-
     return fallback !== undefined ? String(fallback) : "";
   }
-
   return String(value);
-};
-
-const formatDate = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 };
 
 const formatCapital = (value) => {
   if (value === null || value === undefined || value === "") return "-";
   const number = Number(value);
   if (Number.isNaN(number)) return String(value);
-
   return `₹${number.toLocaleString("en-IN")}`;
-};
-
-const normalizePhoneForWhatsApp = (phone) => {
-  if (!phone) return "";
-  const digits = String(phone).replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.startsWith("91") && digits.length >= 12) return digits;
-  if (digits.length === 10) return `91${digits}`;
-  return digits;
 };
 
 const BusinessDirectory = () => {
@@ -457,21 +416,6 @@ const BusinessDirectory = () => {
     initialize();
   }, [languageCode]);
 
-  useEffect(() => {
-    if (!selectedBusiness) return;
-
-    const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        handleCloseModal();
-      }
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [selectedBusiness]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -614,7 +558,6 @@ const BusinessDirectory = () => {
         {activeFilterCount > 0 && (
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <span className="text-sm text-slate-400">{t.searchResults}:</span>
-
             {Object.entries(appliedFilters).map(([key, value]) => (
               <span
                 key={key}
@@ -623,7 +566,6 @@ const BusinessDirectory = () => {
                 {value}
               </span>
             ))}
-
             <button
               type="button"
               onClick={handleClearSearch}
@@ -667,7 +609,6 @@ const BusinessDirectory = () => {
             <p className="mt-2 text-sm text-slate-400">
               {t.noBusinessesDescription}
             </p>
-
             {activeFilterCount > 0 && (
               <button
                 type="button"
@@ -749,7 +690,6 @@ const BusinessCard = ({ business, languageCode, t, onClick }) => {
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
             <Building2 size={21} />
           </div>
-
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold text-white">
               {businessName}
@@ -795,283 +735,5 @@ const BusinessCard = ({ business, languageCode, t, onClick }) => {
     </button>
   );
 };
-
-const BusinessDetailsModal = ({
-  business,
-  ownerContact,
-  contactLoading,
-  authenticated,
-  languageCode,
-  t,
-  onClose,
-  onVisitProfile,
-}) => {
-  const businessName =
-    getText(business.business_name, languageCode) || t.notAvailable;
-  const category = getText(business.category, languageCode) || t.notAvailable;
-  const description =
-    getText(business.description, languageCode) || t.notAvailable;
-
-  const targetOwnerId =
-    business?.owner_id || ownerContact?.owner_id || ownerContact?.user_id;
-
-  const ownerName = getText(ownerContact?.owner_name, languageCode);
-  const ownerEmail = getText(ownerContact?.email, languageCode);
-  const ownerPhone = getText(
-    ownerContact?.phone_number || ownerContact?.phone,
-    languageCode,
-  );
-  const whatsappNumber = normalizePhoneForWhatsApp(ownerPhone);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
-              <Building2 size={23} />
-            </div>
-
-            <div className="min-w-0">
-              <h2 className="truncate text-xl font-bold text-white sm:text-2xl">
-                {businessName}
-              </h2>
-              <p className="mt-1 text-sm text-indigo-300">{category}</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
-            aria-label={t.close}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="overflow-y-auto px-5 py-6 sm:px-6">
-          <section>
-            <SectionTitle
-              icon={<Building2 size={17} />}
-              title={t.description}
-            />
-            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">
-                {description}
-              </p>
-            </div>
-          </section>
-
-          <section className="mt-7">
-            <SectionTitle icon={<MapPin size={17} />} title={t.location} />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <DetailItem
-                label={t.village}
-                value={getText(business.village, languageCode)}
-              />
-              <DetailItem
-                label={t.district}
-                value={getText(business.district, languageCode)}
-              />
-              <DetailItem
-                label={t.city}
-                value={getText(business.city, languageCode)}
-              />
-              <DetailItem
-                label={t.state}
-                value={getText(business.state, languageCode)}
-              />
-              <DetailItem
-                label={t.country}
-                value={getText(business.country, languageCode)}
-              />
-              <DetailItem
-                label={t.pincode}
-                value={getText(business.pincode, languageCode)}
-              />
-            </div>
-          </section>
-
-          <section className="mt-7">
-            <SectionTitle
-              icon={<CircleDollarSign size={17} />}
-              title={t.financial}
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <DetailItem
-                label={t.capital}
-                value={formatCapital(business.margin_capital)}
-              />
-              <DetailItem
-                label={t.status}
-                value={
-                  getText(business.status, languageCode) === "active"
-                    ? t.active
-                    : getText(business.status, languageCode) || t.notAvailable
-                }
-              />
-            </div>
-          </section>
-
-          <section className="mt-7">
-            <SectionTitle icon={<Globe2 size={17} />} title={t.coordinates} />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <DetailItem label={t.latitude} value={business.latitude} />
-              <DetailItem label={t.longitude} value={business.longitude} />
-            </div>
-          </section>
-
-          <section className="mt-7">
-            <SectionTitle
-              icon={<CalendarDays size={17} />}
-              title={t.businessDetails}
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <DetailItem label={t.businessId} value={business.id} />
-              <DetailItem
-                label={t.owner}
-                value={
-                  authenticated ? ownerName || targetOwnerId : t.notAvailable
-                }
-              />
-              <DetailItem
-                label={t.created}
-                value={formatDate(business.created_at)}
-              />
-              <DetailItem
-                label={t.updated}
-                value={formatDate(business.updated_at)}
-              />
-            </div>
-          </section>
-
-          {/* Combined Owner Details, Visit Profile, and Contact Section (Restricted to Authenticated Users) */}
-          <section className="mt-7">
-            <SectionTitle icon={<User size={17} />} title={t.contactOwner} />
-
-            {!authenticated ? (
-              <div className="rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-5">
-                <p className="text-sm leading-6 text-indigo-200">
-                  {t.signInToContact}
-                </p>
-              </div>
-            ) : contactLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                <div className="h-5 w-40 animate-pulse rounded bg-white/10" />
-                <div className="mt-3 h-4 w-56 animate-pulse rounded bg-white/10" />
-                <div className="mt-3 h-4 w-44 animate-pulse rounded bg-white/10" />
-              </div>
-            ) : ownerContact ? (
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-                <div className="space-y-4">
-                  {ownerName && (
-                    <div className="flex items-center gap-3">
-                      <User size={17} className="text-slate-500" />
-                      <div>
-                        <p className="text-xs text-slate-500">{t.owner}</p>
-                        <p className="mt-0.5 text-sm font-semibold text-white">
-                          {ownerName}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {ownerEmail && (
-                    <div className="flex items-center gap-3">
-                      <Mail size={17} className="text-slate-500" />
-                      <div className="min-w-0">
-                        <p className="text-xs text-slate-500">{t.email}</p>
-                        <p className="mt-0.5 break-all text-sm text-white">
-                          {ownerEmail}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {ownerPhone && (
-                    <div className="flex items-center gap-3">
-                      <Phone size={17} className="text-slate-500" />
-                      <div>
-                        <p className="text-xs text-slate-500">{t.phone}</p>
-                        <p className="mt-0.5 text-sm text-white">
-                          {ownerPhone}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row">
-                  {targetOwnerId && (
-                    <button
-                      type="button"
-                      onClick={() => onVisitProfile(targetOwnerId)}
-                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
-                    >
-                      <User size={17} />
-                      {t.visitProfile}
-                    </button>
-                  )}
-
-                  {ownerEmail && (
-                    <a
-                      href={`mailto:${ownerEmail}`}
-                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-                    >
-                      <Mail size={17} />
-                      {t.email}
-                    </a>
-                  )}
-
-                  {whatsappNumber && (
-                    <a
-                      href={`https://wa.me/${whatsappNumber}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-                    >
-                      <MessageCircle size={17} />
-                      {t.whatsapp}
-                    </a>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-                <p className="text-sm text-slate-400">{t.contactUnavailable}</p>
-              </div>
-            )}
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SectionTitle = ({ icon, title }) => (
-  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-200">
-    <span className="text-indigo-400">{icon}</span>
-    {title}
-  </div>
-);
-
-const DetailItem = ({ label, value }) => (
-  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3.5">
-    <p className="text-xs font-medium text-slate-500">{label}</p>
-    <p className="mt-1 break-words text-sm text-slate-200">
-      {value !== null && value !== undefined && value !== ""
-        ? String(value)
-        : "-"}
-    </p>
-  </div>
-);
 
 export default BusinessDirectory;
