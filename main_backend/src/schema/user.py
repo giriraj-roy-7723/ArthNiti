@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, String, DateTime, Enum
+from sqlalchemy import Boolean, Column, String, DateTime, Enum,Float
 from sqlalchemy.dialects.postgresql import JSONB
 from src.config.database import Base
 from datetime import datetime, timezone
