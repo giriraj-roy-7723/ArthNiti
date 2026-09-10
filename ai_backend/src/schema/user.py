@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Enum
+from sqlalchemy import Column, String, DateTime, Enum, Boolean, Float
 from sqlalchemy.dialects.postgresql import JSONB
 from src.config.database import Base
 from datetime import datetime, timezone
@@ -25,7 +25,7 @@ async def generate_unique_username(first_name: str, db) -> str:
 
 
 class UserRole(str, enum.Enum):
-    user = "user"
+    # user = "user"
     admin = "admin"
     enterpreneur = "enterpreneur"
     buyer = "buyer"
@@ -48,6 +48,7 @@ class User(Base):
     password = Column(String, nullable=False)
     profile_pic = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.user, nullable=False)
+    email_verified = Column(Boolean, nullable=True, default=None)
 
     # Multilingual address fields
     address = Column(JSONB, nullable=False, default=dict)
@@ -59,6 +60,9 @@ class User(Base):
 
     # Non-translated address field
     pincode = Column(String, nullable=False)
+
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
 
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
