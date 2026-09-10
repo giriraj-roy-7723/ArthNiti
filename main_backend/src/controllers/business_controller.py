@@ -453,3 +453,226 @@ async def get_my_business_ids(
     print("BUSINESSES FOUND:", businesses)
 
     return [str(business.id) for business in businesses]
+
+
+async def mark_business_state(
+    user_id: str,
+    business_id: str,
+    state: BusinessStatus,
+    db: AsyncSession,
+):
+    result = await db.execute(
+        select(Business).where(
+            Business.id == business_id,
+            Business.owner_id == user_id,
+        )
+    )
+
+    business = result.scalar_one_or_none()
+
+    if not business:
+        raise HTTPException(
+            status_code=404,
+            detail="Business not found",
+        )
+
+    business.status = state
+
+    try:
+        await db.commit()
+        await db.refresh(business)
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to update business status",
+        )
+
+    return business
+
+
+async def search_businesses(
+    db: AsyncSession,
+    user_id: str,
+    language: str,
+    name: str | None = None,
+    category: str | None = None,
+    status: BusinessStatus | None = None,
+    village: str | None = None,
+    district: str | None = None,
+    city: str | None = None,
+    state: str | None = None,
+    country: str | None = None,
+    pincode: str | None = None,
+) -> list[BusinessResponse]:
+    lang_code = normalize_language(language)
+
+    filters = [
+        Business.owner_id == user_id,
+    ]
+
+    if name:
+        filters.append(Business.business_name.op("@>")({"en": name}))
+
+    if category:
+        filters.append(Business.category.op("@>")({"en": category}))
+
+    if status:
+        filters.append(Business.status == status)
+
+    if village:
+        filters.append(Business.village.op("@>")({"en": village}))
+
+    if district:
+        filters.append(Business.district.op("@>")({"en": district}))
+
+    if city:
+        filters.append(Business.city.op("@>")({"en": city}))
+
+    if state:
+        filters.append(Business.state.op("@>")({"en": state}))
+
+    if country:
+        filters.append(Business.country.op("@>")({"en": country}))
+
+    if pincode:
+        filters.append(Business.pincode == pincode)
+
+    if not filters:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one search filter is required",
+        )
+
+    result = await db.execute(select(Business).where(*filters))
+
+    businesses = result.scalars().all()
+
+    responses = []
+
+    for business in businesses:
+        await ensure_business_language(
+            business=business,
+            target_language=lang_code,
+            db=db,
+        )
+
+        responses.append(
+            BusinessResponse(
+                id=business.id,
+                owner_id=business.owner_id,
+                business_name=(business.business_name or {}).get(lang_code, ""),
+                category=(business.category or {}).get(lang_code, ""),
+                description=(business.description or {}).get(lang_code),
+                village=(business.village or {}).get(lang_code),
+                district=(business.district or {}).get(lang_code, ""),
+                city=(business.city or {}).get(lang_code),
+                state=(business.state or {}).get(lang_code, ""),
+                country=(business.country or {}).get(lang_code, ""),
+                margin_capital=business.margin_capital,
+                pincode=business.pincode,
+                latitude=business.latitude,
+                longitude=business.longitude,
+                status=business.status,
+                created_at=business.created_at,
+                updated_at=business.updated_at,
+            )
+        )
+
+    await db.commit()
+
+    return responses
+
+
+async def search_other_businesses(
+    db: AsyncSession,
+    user_id: str,
+    language: str,
+    name: str | None = None,
+    category: str | None = None,
+    status: BusinessStatus | None = None,
+    village: str | None = None,
+    district: str | None = None,
+    city: str | None = None,
+    state: str | None = None,
+    country: str | None = None,
+    pincode: str | None = None,
+) -> list[BusinessResponse]:
+    lang_code = normalize_language(language)
+
+    filters = [
+        Business.owner_id != user_id,
+    ]
+
+    if name:
+        filters.append(Business.business_name.op("@>")({"en": name}))
+
+    if category:
+        filters.append(Business.category.op("@>")({"en": category}))
+
+    if status:
+        filters.append(Business.status == status)
+
+    if village:
+        filters.append(Business.village.op("@>")({"en": village}))
+
+    if district:
+        filters.append(Business.district.op("@>")({"en": district}))
+
+    if city:
+        filters.append(Business.city.op("@>")({"en": city}))
+
+    if state:
+        filters.append(Business.state.op("@>")({"en": state}))
+
+    if country:
+        filters.append(Business.country.op("@>")({"en": country}))
+
+    if pincode:
+        filters.append(Business.pincode == pincode)
+
+    if not filters:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one search filter is required",
+        )
+
+    result = await db.execute(select(Business).where(*filters))
+
+    businesses = result.scalars().all()
+
+    responses = []
+
+    for business in businesses:
+        await ensure_business_language(
+            business=business,
+            target_language=lang_code,
+            db=db,
+        )
+
+        responses.append(
+            BusinessResponse(
+                id=business.id,
+                owner_id=business.owner_id,
+                business_name=(business.business_name or {}).get(lang_code, ""),
+                category=(business.category or {}).get(lang_code, ""),
+                description=(business.description or {}).get(lang_code),
+                village=(business.village or {}).get(lang_code),
+                district=(business.district or {}).get(lang_code, ""),
+                city=(business.city or {}).get(lang_code),
+                state=(business.state or {}).get(lang_code, ""),
+                country=(business.country or {}).get(lang_code, ""),
+                margin_capital=business.margin_capital,
+                pincode=business.pincode,
+                latitude=business.latitude,
+                longitude=business.longitude,
+                status=business.status,
+                created_at=business.created_at,
+                updated_at=business.updated_at,
+            )
+        )
+
+    await db.commit()
+
+    return responses

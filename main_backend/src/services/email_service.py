@@ -6,7 +6,7 @@ async def send_invite_email(
     invite_url: str
 ):
     message = MessageSchema(
-        subject="GAND MARAO",
+        subject="hello",
         recipients=[email],
         body=f"""
             Hello,
