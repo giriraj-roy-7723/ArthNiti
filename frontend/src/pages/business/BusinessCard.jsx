@@ -8,6 +8,7 @@ import {
   MoreVertical,
   X,
 } from "lucide-react";
+import BusinessImageGallery from "./BusinessImageGallery";
 
 const BusinessCard = ({ business, t, onOpen, onUpdateStatus }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -186,6 +187,16 @@ const BusinessCard = ({ business, t, onOpen, onUpdateStatus }) => {
             )}
           </div>
         </div>
+
+        <BusinessImageGallery
+          businessId={business.id}
+          canUpload
+          title={t.businessImages}
+          uploadLabel={t.addImages}
+          emptyLabel={t.noImages}
+          uploadingLabel={t.uploadingImages}
+          errorLabel={t.imagesLoadFailed}
+        />
 
         <button
           type="button"

@@ -63,6 +63,9 @@ const translations = {
     searchResults: "Search results",
     allBusinesses: "Active businesses",
     reset: "Reset",
+    businessImages: "Business images",
+    noImages: "No images uploaded yet.",
+    imagesLoadFailed: "Unable to load business images.",
   },
   hindi: {
     title: "व्यवसाय निर्देशिका",
@@ -111,6 +114,9 @@ const translations = {
     searchResults: "खोज परिणाम",
     allBusinesses: "सक्रिय व्यवसाय",
     reset: "रीसेट",
+    businessImages: "व्यवसाय की तस्वीरें",
+    noImages: "अभी तक कोई तस्वीर अपलोड नहीं हुई है।",
+    imagesLoadFailed: "व्यवसाय की तस्वीरें लोड नहीं हो सकीं।",
   },
   bengali: {
     title: "ব্যবসা ডিরেক্টরি",
@@ -160,6 +166,9 @@ const translations = {
     searchResults: "সার্চ ফলাফল",
     allBusinesses: "সক্রিয় ব্যবসা",
     reset: "রিসেট",
+    businessImages: "ব্যবসার ছবি",
+    noImages: "এখনও কোনো ছবি আপলোড হয়নি।",
+    imagesLoadFailed: "ব্যবসার ছবি লোড করা যায়নি।",
   },
 };
 

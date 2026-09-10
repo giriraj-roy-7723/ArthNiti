@@ -13,6 +13,7 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import BusinessImageGallery from "../BusinessImageGallery";
 
 // Fix standard Leaflet marker icon asset resolution issues in Vite/Webpack
 delete L.Icon.Default.prototype._getIconUrl;
@@ -197,6 +198,13 @@ const BusinessDetailsModal = ({
               </p>
             </div>
           </section>
+
+          <BusinessImageGallery
+            businessId={business.id}
+            title={t.businessImages}
+            emptyLabel={t.noImages}
+            errorLabel={t.imagesLoadFailed}
+          />
 
           {/* Location Details */}
           <section className="mt-7">

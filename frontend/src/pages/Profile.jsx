@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { api } from "../utils/api";
 import { useLanguage } from "../context/LanguageContext";
+import ImageLightbox from "../components/ImageLightbox";
 
 const PROFILE_ENDPOINT = "/auth/me";
 const UPDATE_PROFILE_ENDPOINT = "/auth/update-profile";
@@ -112,6 +113,7 @@ const Profile = () => {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState("");
+  const [selectedProfileImage, setSelectedProfileImage] = useState("");
 
   const translations = {
     english: {
@@ -749,14 +751,21 @@ const Profile = () => {
             <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
               <div className="relative shrink-0">
                 {profileImage ? (
-                  <img
-                    src={profileImage}
-                    alt={`${firstName} ${lastName}`}
-                    className="h-24 w-24 rounded-2xl border border-gray-700 object-cover shadow-xl sm:h-28 sm:w-28"
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProfileImage(profileImage)}
+                    className="group block rounded-2xl"
+                    aria-label="View profile image"
+                  >
+                    <img
+                      src={profileImage}
+                      alt={`${firstName} ${lastName}`}
+                      className="h-24 w-24 rounded-2xl border border-gray-700 object-cover shadow-xl transition duration-200 group-hover:scale-105 sm:h-28 sm:w-28"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </button>
                 ) : (
                   <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-2xl font-extrabold text-blue-400 shadow-xl sm:h-28 sm:w-28 sm:text-3xl">
                     {getInitials()}
@@ -820,6 +829,12 @@ const Profile = () => {
             </div>
           </div>
         </div>
+
+        <ImageLightbox
+          src={selectedProfileImage}
+          alt={`${firstName} ${lastName}`}
+          onClose={() => setSelectedProfileImage("")}
+        />
 
         <div className="space-y-6">
           <ProfileSection icon={User} title={t.personalInformation}>

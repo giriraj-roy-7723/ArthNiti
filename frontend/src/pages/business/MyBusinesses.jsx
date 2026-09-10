@@ -108,6 +108,11 @@ const translations = {
     requiredBusinessName: "Business name is required.",
     requiredCategory: "Business category is required.",
     createFailed: "Unable to create business. Please try again.",
+    businessImages: "Business images",
+    addImages: "Add images",
+    noImages: "No images uploaded yet.",
+    uploadingImages: "Uploading...",
+    imagesLoadFailed: "Unable to load business images.",
   },
 
   hindi: {
@@ -201,6 +206,11 @@ const translations = {
     requiredBusinessName: "व्यवसाय का नाम आवश्यक है।",
     requiredCategory: "व्यवसाय की श्रेणी आवश्यक है।",
     createFailed: "व्यवसाय बनाने में असमर्थ। कृपया फिर से प्रयास करें।",
+    businessImages: "व्यवसाय की तस्वीरें",
+    addImages: "तस्वीरें जोड़ें",
+    noImages: "अभी तक कोई तस्वीर अपलोड नहीं हुई है।",
+    uploadingImages: "अपलोड हो रहा है...",
+    imagesLoadFailed: "व्यवसाय की तस्वीरें लोड नहीं हो सकीं।",
   },
 
   bengali: {
@@ -294,6 +304,11 @@ const translations = {
     requiredBusinessName: "ব্যবসার নাম আবশ্যক।",
     requiredCategory: "ব্যবসার ক্যাটাগরি আবশ্যক।",
     createFailed: "ব্যবসা তৈরি করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+    businessImages: "ব্যবসার ছবি",
+    addImages: "ছবি যোগ করুন",
+    noImages: "এখনও কোনো ছবি আপলোড হয়নি।",
+    uploadingImages: "আপলোড হচ্ছে...",
+    imagesLoadFailed: "ব্যবসার ছবি লোড করা যায়নি।",
   },
 };
 
