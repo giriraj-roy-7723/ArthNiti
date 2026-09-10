@@ -1,6 +1,36 @@
 from fastapi_mail import FastMail, MessageSchema
 from src.config.mail import conf
 
+
+async def send_otp_email(
+    email: str,
+    otp: str,
+):
+    message = MessageSchema(
+        subject="Your verification code",
+        recipients=[email],
+        body=f"""
+            Hello,
+
+            Your OTP for email verification is: {otp}
+
+            This code is valid for 5 minutes. Do not share it with anyone.
+
+            If you did not request this, you can safely ignore this email.
+
+            Best regards,
+            Business Advisory Platform Team
+        """,
+        subtype="plain",
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
+
+
+
+
+
 async def send_invite_email(
     email: str,
     invite_url: str

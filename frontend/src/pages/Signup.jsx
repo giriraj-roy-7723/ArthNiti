@@ -18,6 +18,8 @@ import {
   Home,
   BriefcaseBusiness,
   ChevronDown,
+  CheckCircle2,
+  ShieldCheck,
 } from "lucide-react";
 
 import { Country, State, City } from "country-state-city";
@@ -35,6 +37,7 @@ const InputField = ({
   required = true,
   value,
   onChange,
+  disabled = false,
 }) => {
   return (
     <div>
@@ -62,6 +65,7 @@ const InputField = ({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          disabled={disabled}
           className={`
             w-full
             ${Icon ? "pl-12" : "pl-4"}
@@ -80,6 +84,8 @@ const InputField = ({
             focus:border-blue-500
             focus:ring-2
             focus:ring-blue-500/20
+            disabled:opacity-60
+            disabled:cursor-not-allowed
           `}
         />
       </div>
@@ -218,6 +224,13 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // OTP / email verification state
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState("");
+
   const { language } = useLanguage();
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -283,6 +296,16 @@ const Signup = () => {
       pinPlaceholder: "Enter postal / ZIP code",
       address: "Full Address",
       addrPlaceholder: "House number, street, area, landmark...",
+      sendOtpBtn: "Verify Email",
+      sendingOtpBtn: "Sending...",
+      otpSentMsg: "OTP sent to your email",
+      otpLabel: "Enter OTP",
+      otpPlaceholder: "6-digit code",
+      verifyOtpBtn: "Confirm",
+      verifyingOtpBtn: "Verifying...",
+      emailVerifiedMsg: "Email verified",
+      resendOtpBtn: "Resend OTP",
+      enterEmailFirst: "Enter a valid email first",
     },
     hindi: {
       title: "खाता बनाएं",
@@ -343,6 +366,16 @@ const Signup = () => {
       pinPlaceholder: "पिन कोड दर्ज करें",
       address: "पूरा पता",
       addrPlaceholder: "मकान नंबर, सड़क, क्षेत्र, लैंडमार्क...",
+      sendOtpBtn: "ईमेल सत्यापित करें",
+      sendingOtpBtn: "भेजा जा रहा है...",
+      otpSentMsg: "आपके ईमेल पर OTP भेजा गया",
+      otpLabel: "OTP दर्ज करें",
+      otpPlaceholder: "6-अंकीय कोड",
+      verifyOtpBtn: "पुष्टि करें",
+      verifyingOtpBtn: "सत्यापित किया जा रहा है...",
+      emailVerifiedMsg: "ईमेल सत्यापित",
+      resendOtpBtn: "OTP पुनः भेजें",
+      enterEmailFirst: "पहले एक सही ईमेल दर्ज करें",
     },
     bengali: {
       title: "অ্যাকাউন্ট তৈরি করুন",
@@ -403,6 +436,16 @@ const Signup = () => {
       pinPlaceholder: "পিন কোড লিখুন",
       address: "সম্পূর্ণ ঠিকানা",
       addrPlaceholder: "বাড়ি নম্বর, রাস্তা, এলাকা, ল্যান্ডমার্ক...",
+      sendOtpBtn: "ইমেল যাচাই করুন",
+      sendingOtpBtn: "পাঠানো হচ্ছে...",
+      otpSentMsg: "আপনার ইমেলে OTP পাঠানো হয়েছে",
+      otpLabel: "OTP লিখুন",
+      otpPlaceholder: "৬-সংখ্যার কোড",
+      verifyOtpBtn: "নিশ্চিত করুন",
+      verifyingOtpBtn: "যাচাই করা হচ্ছে...",
+      emailVerifiedMsg: "ইমেল যাচাইকৃত",
+      resendOtpBtn: "OTP পুনরায় পাঠান",
+      enterEmailFirst: "প্রথমে একটি সঠিক ইমেল লিখুন",
     },
   };
 
@@ -480,11 +523,63 @@ const Signup = () => {
   };
 
   // ============================================================
+  // OTP: SEND
+  // ============================================================
+
+  const handleSendOtp = async () => {
+    setOtpError("");
+
+    if (!formData.email || !formData.email.includes("@")) {
+      setOtpError(t.enterEmailFirst);
+      return;
+    }
+
+    setOtpLoading(true);
+
+    try {
+      await api.post("/auth/send-otp", { email: formData.email });
+      setOtpSent(true);
+    } catch (err) {
+      setOtpError(
+        err.response?.data?.detail || "Failed to send OTP. Try again.",
+      );
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // ============================================================
+  // OTP: VERIFY
+  // ============================================================
+
+  const handleVerifyOtp = async () => {
+    setOtpError("");
+    setOtpLoading(true);
+
+    try {
+      await api.post("/auth/verify-otp", {
+        email: formData.email,
+        otp,
+      });
+      setEmailVerified(true);
+    } catch (err) {
+      setOtpError(err.response?.data?.detail || "Invalid OTP. Try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // ============================================================
   // SUBMIT
   // ============================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!emailVerified) {
+      setError("Please verify your email before creating an account.");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -582,15 +677,146 @@ const Signup = () => {
                       onChange={handleChange}
                     />
 
-                    <InputField
-                      name="email"
-                      label={t.email}
-                      placeholder={t.emailPlaceholder}
-                      type="email"
-                      icon={Mail}
-                      value={formData.email}
-                      onChange={handleChange}
-                    />
+                    <div className="md:col-span-2">
+                      <InputField
+                        name="email"
+                        label={t.email}
+                        placeholder={t.emailPlaceholder}
+                        type="email"
+                        icon={Mail}
+                        value={formData.email}
+                        onChange={handleChange}
+                        disabled={emailVerified}
+                      />
+
+                      {/* ============================================ */}
+                      {/* EMAIL VERIFICATION BLOCK                      */}
+                      {/* ============================================ */}
+
+                      <div className="mt-3">
+                        {emailVerified ? (
+                          <div className="flex items-center gap-2 text-sm text-green-400">
+                            <CheckCircle2 size={16} />
+                            <span>{t.emailVerifiedMsg}</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {!otpSent ? (
+                              <button
+                                type="button"
+                                onClick={handleSendOtp}
+                                disabled={otpLoading || !formData.email}
+                                className="
+                                  inline-flex items-center gap-2
+                                  px-4 py-2
+                                  rounded-lg
+                                  border border-blue-500/30
+                                  bg-blue-500/10
+                                  text-blue-400
+                                  text-sm font-semibold
+                                  hover:bg-blue-500/20
+                                  disabled:opacity-50
+                                  disabled:cursor-not-allowed
+                                  transition-colors
+                                "
+                              >
+                                {otpLoading ? (
+                                  <>
+                                    <Loader2
+                                      size={14}
+                                      className="animate-spin"
+                                    />
+                                    {t.sendingOtpBtn}
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShieldCheck size={14} />
+                                    {t.sendOtpBtn}
+                                  </>
+                                )}
+                              </button>
+                            ) : (
+                              <div className="flex flex-col sm:flex-row gap-3">
+                                <input
+                                  type="text"
+                                  value={otp}
+                                  onChange={(e) => setOtp(e.target.value)}
+                                  placeholder={t.otpPlaceholder}
+                                  maxLength={6}
+                                  className="
+                                    flex-1
+                                    px-4 py-2.5
+                                    bg-gray-950/70
+                                    border border-gray-700
+                                    rounded-lg
+                                    text-white
+                                    placeholder-gray-500
+                                    outline-none
+                                    focus:border-blue-500
+                                    focus:ring-2
+                                    focus:ring-blue-500/20
+                                  "
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={handleVerifyOtp}
+                                  disabled={otpLoading || !otp}
+                                  className="
+                                    inline-flex items-center justify-center gap-2
+                                    px-5 py-2.5
+                                    rounded-lg
+                                    bg-blue-600
+                                    text-white
+                                    text-sm font-semibold
+                                    hover:bg-blue-500
+                                    disabled:opacity-50
+                                    disabled:cursor-not-allowed
+                                    transition-colors
+                                  "
+                                >
+                                  {otpLoading ? (
+                                    <Loader2
+                                      size={14}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    t.verifyOtpBtn
+                                  )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={handleSendOtp}
+                                  disabled={otpLoading}
+                                  className="
+                                    text-xs text-gray-500
+                                    hover:text-gray-300
+                                    underline
+                                    disabled:opacity-50
+                                    self-center
+                                  "
+                                >
+                                  {t.resendOtpBtn}
+                                </button>
+                              </div>
+                            )}
+
+                            {otpSent && !otpError && (
+                              <p className="text-xs text-gray-500">
+                                {t.otpSentMsg}
+                              </p>
+                            )}
+
+                            {otpError && (
+                              <p className="text-xs text-red-400">
+                                {otpError}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
                     <InputField
                       name="password"
@@ -1031,7 +1257,7 @@ const Signup = () => {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || !emailVerified}
                     className="
                       w-full
                       flex
@@ -1069,6 +1295,12 @@ const Signup = () => {
                       </>
                     )}
                   </button>
+
+                  {!emailVerified && (
+                    <p className="text-center text-xs text-amber-400 mt-3">
+                      Verify your email to enable account creation.
+                    </p>
+                  )}
 
                   <p className="text-center text-sm text-gray-500 mt-5">
                     {t.terms}
