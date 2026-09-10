@@ -1,5 +1,6 @@
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import BusinessScopeBadge from "./BusinessScopeBadge";
 
 const BusinessEvidenceLayout = ({
   title,
@@ -25,20 +26,27 @@ const BusinessEvidenceLayout = ({
           Back to Analysis
         </button>
 
-        <div className="mb-8 flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-gray-800 bg-gray-900">
-            <Icon size={27} className={iconClassName} />
+        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-gray-800 bg-gray-900">
+              <Icon size={27} className={iconClassName} />
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-blue-400">
+                Business Evidence
+              </p>
+
+              <h1 className="mt-1 text-3xl font-extrabold">{title}</h1>
+
+              <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+            </div>
           </div>
 
-          <div>
-            <p className="text-sm font-semibold text-blue-400">
-              Business Evidence
-            </p>
-
-            <h1 className="mt-1 text-3xl font-extrabold">{title}</h1>
-
-            <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
-          </div>
+          <BusinessScopeBadge
+            businessId={businessId}
+            className="self-end sm:self-auto"
+          />
         </div>
 
         {loading && (

@@ -14,6 +14,7 @@ import {
 
 import { api, aiApi } from "../../../utils/api";
 import { useLanguage } from "../../../context/LanguageContext";
+import BusinessScopeBadge from "./components/BusinessScopeBadge";
 
 import FinanceOverview from "./components/finance/FinanceOverview";
 import FinanceScenarios from "./components/finance/FinanceScenarios";
@@ -528,6 +529,11 @@ const FinancialAnalysis = () => {
               </p>
             </div>
           </div>
+
+          <BusinessScopeBadge
+            businessId={businessId}
+            className="self-end lg:self-auto"
+          />
 
           <button
             type="button"

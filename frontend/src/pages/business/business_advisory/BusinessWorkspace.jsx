@@ -25,6 +25,7 @@ import {
 
 import { aiApi } from "../../../utils/api";
 import { useLanguage } from "../../../context/LanguageContext";
+import BusinessScopeBadge from "./components/BusinessScopeBadge";
 
 const translations = {
   english: {
@@ -509,6 +510,7 @@ const BusinessWorkspace = () => {
               {t.businessIdLabel}:{" "}
               <span className="text-gray-400">{businessId}</span>
             </p>
+            <BusinessScopeBadge businessId={businessId} className="shrink-0" />
           </div>
         </div>
 

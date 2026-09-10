@@ -15,6 +15,7 @@ import {
 
 import { api, aiApi } from "../../../utils/api";
 import { useLanguage } from "../../../context/LanguageContext";
+import BusinessScopeBadge from "./components/BusinessScopeBadge";
 
 const normalizeLanguage = (value) => {
   const normalized = String(value || "").toLowerCase();
@@ -464,7 +465,7 @@ const GovernmentSchemes = () => {
             {t.back}
           </button>
 
-          <div className="mb-8 flex items-center gap-4">
+          <div className="mb-8 flex items-center justify-between gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
               <Landmark size={27} className="text-blue-400" />
             </div>
@@ -477,6 +478,8 @@ const GovernmentSchemes = () => {
               <h1 className="mt-1 text-3xl font-extrabold">{t.title}</h1>
               <p className="mt-1 text-sm text-gray-500">{t.subtitle}</p>
             </div>
+
+            <BusinessScopeBadge businessId={businessId} className="shrink-0" />
           </div>
 
           <div className="mb-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
@@ -787,6 +790,11 @@ const GovernmentSchemes = () => {
               </p>
             </div>
           </div>
+
+          <BusinessScopeBadge
+            businessId={businessId}
+            className="self-end lg:self-auto"
+          />
 
           <button
             type="button"

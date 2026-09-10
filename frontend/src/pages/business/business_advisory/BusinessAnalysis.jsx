@@ -23,6 +23,7 @@ import {
 
 import { api, aiApi } from "../../../utils/api";
 import { useLanguage } from "../../../context/LanguageContext";
+import BusinessScopeBadge from "./components/BusinessScopeBadge";
 
 const translations = {
   english: {
@@ -602,6 +603,11 @@ const BusinessAnalysis = () => {
             </div>
           </div>
 
+          <BusinessScopeBadge
+            businessId={businessId}
+            className="self-end sm:self-auto"
+          />
+
           <button
             type="button"
             onClick={handleRegenerate}
@@ -793,7 +799,7 @@ const GenerationPage = ({
         </button>
 
         <div className="rounded-3xl border border-gray-800 bg-gray-900/60 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-          <div className="mb-6 flex items-start gap-4">
+          <div className="mb-6 flex items-start justify-between gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
               <Sparkles className="text-blue-400" size={26} />
             </div>
@@ -808,6 +814,7 @@ const GenerationPage = ({
                 {t.generationDescription}
               </p>
             </div>
+            <BusinessScopeBadge businessId={businessId} className="shrink-0" />
           </div>
 
           {/* Active Generation State Notice */}
