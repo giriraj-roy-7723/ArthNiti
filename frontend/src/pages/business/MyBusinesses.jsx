@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Building2,
-  Plus,
-  Loader2,
   AlertCircle,
-  Sparkles,
+  Building2,
+  ChevronDown,
+  Loader2,
+  Plus,
   RefreshCw,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  X,
 } from "lucide-react";
 
 import { api } from "../../utils/api";
@@ -32,13 +36,43 @@ const translations = {
     rejected: "Rejected",
     pending: "Pending",
     underReview: "Under Review",
+    active: "Active",
+    cancelled: "Cancelled",
     businessCount: "business",
     businessesCount: "businesses",
     locationUnavailable: "Location unavailable",
     errorDefault: "Unable to load your businesses. Please try again.",
     poweredBy: "AI-powered business workspace",
+    manageBusiness: "Manage Business",
+    markActive: "Mark Active",
+    markCancelled: "Mark Cancelled",
+    updatingStatus: "Updating status...",
+    statusUpdated: "Business status updated successfully.",
+    statusUpdateFailed: "Unable to update business status. Please try again.",
+    confirmCancelled:
+      "Are you sure you want to mark this business as cancelled?",
+    confirmActive: "Are you sure you want to mark this business as active?",
 
-    // Modal translations
+    search: "Search",
+    searchBusinesses: "Search your businesses",
+    searchDescription: "Use one or more filters to find your businesses.",
+    businessName: "Business name",
+    category: "Category",
+    village: "Village",
+    district: "District",
+    city: "City",
+    state: "State",
+    country: "Country",
+    pincode: "Pincode",
+    status: "Status",
+    selectStatus: "Select status",
+    clear: "Clear",
+    apply: "Search businesses",
+    close: "Close",
+    activeFilters: "active filters",
+    searchResults: "Search results",
+    reset: "Reset",
+
     createBusiness: "Create Business",
     createBusinessDescription:
       "Tell us about your business and where it is located.",
@@ -52,25 +86,17 @@ const translations = {
       "Unable to fetch your profile address. Please enter the location manually.",
     businessInformation: "Business Information",
     locationInformation: "Business Location",
-    businessName: "Business Name",
     businessNamePlaceholder: "Enter your business name",
-    category: "Category",
     categoryPlaceholder: "e.g. Grocery, Restaurant, Manufacturing",
     description: "Description",
     descriptionPlaceholder: "Briefly describe your business",
     marginCapital: "Capital / Investment",
     marginCapitalPlaceholder: "Enter amount",
-    village: "Village",
     villagePlaceholder: "Enter village",
-    district: "District",
     districtPlaceholder: "Enter district",
-    city: "City",
     cityPlaceholder: "Enter city",
-    state: "State",
     statePlaceholder: "Enter state",
-    country: "Country",
     countryPlaceholder: "Enter country",
-    pincode: "Pincode",
     pincodePlaceholder: "Enter pincode",
     latitude: "Latitude",
     latitudePlaceholder: "Optional",
@@ -83,6 +109,7 @@ const translations = {
     requiredCategory: "Business category is required.",
     createFailed: "Unable to create business. Please try again.",
   },
+
   hindi: {
     title: "मेरे व्यवसाय",
     subtitle:
@@ -101,11 +128,43 @@ const translations = {
     rejected: "अस्वीकृत",
     pending: "लंबित",
     underReview: "समीक्षा में",
+    active: "सक्रिय",
+    cancelled: "रद्द",
     businessCount: "व्यवसाय",
     businessesCount: "व्यवसाय",
     locationUnavailable: "स्थान उपलब्ध नहीं है",
     errorDefault: "आपके व्यवसाय लोड नहीं हो सके। कृपया फिर से प्रयास करें।",
     poweredBy: "AI-संचालित बिज़नेस वर्कस्पेस",
+    manageBusiness: "व्यवसाय प्रबंधित करें",
+    markActive: "सक्रिय करें",
+    markCancelled: "रद्द करें",
+    updatingStatus: "स्थिति अपडेट हो रही है...",
+    statusUpdated: "व्यवसाय की स्थिति सफलतापूर्वक अपडेट हो गई।",
+    statusUpdateFailed:
+      "व्यवसाय की स्थिति अपडेट नहीं हो सकी। कृपया फिर से प्रयास करें।",
+    confirmCancelled: "क्या आप वाकई इस व्यवसाय को रद्द करना चाहते हैं?",
+    confirmActive: "क्या आप वाकई इस व्यवसाय को सक्रिय करना चाहते हैं?",
+
+    search: "खोजें",
+    searchBusinesses: "अपने व्यवसाय खोजें",
+    searchDescription:
+      "अपने व्यवसाय खोजने के लिए एक या अधिक फ़िल्टर का उपयोग करें।",
+    businessName: "व्यवसाय का नाम",
+    category: "श्रेणी",
+    village: "गाँव",
+    district: "जिला",
+    city: "शहर",
+    state: "राज्य",
+    country: "देश",
+    pincode: "पिनकोड",
+    status: "स्थिति",
+    selectStatus: "स्थिति चुनें",
+    clear: "साफ़ करें",
+    apply: "व्यवसाय खोजें",
+    close: "बंद करें",
+    activeFilters: "सक्रिय फ़िल्टर",
+    searchResults: "खोज परिणाम",
+    reset: "रीसेट",
 
     createBusiness: "व्यवसाय बनाएं",
     createBusinessDescription:
@@ -120,25 +179,17 @@ const translations = {
       "प्रोफ़ाइल पता प्राप्त नहीं हो सका। कृपया स्थान मैन्युअली भरें।",
     businessInformation: "व्यवसाय की जानकारी",
     locationInformation: "व्यवसाय का स्थान",
-    businessName: "व्यवसाय का नाम",
     businessNamePlaceholder: "व्यवसाय का नाम दर्ज करें",
-    category: "श्रेणी",
     categoryPlaceholder: "जैसे किराना, रेस्तरां, निर्माण",
     description: "विवरण",
     descriptionPlaceholder: "अपने व्यवसाय का संक्षिप्त विवरण दें",
     marginCapital: "पूंजी / निवेश",
     marginCapitalPlaceholder: "राशि दर्ज करें",
-    village: "गाँव",
     villagePlaceholder: "गाँव दर्ज करें",
-    district: "जिला",
     districtPlaceholder: "जिला दर्ज करें",
-    city: "शहर",
     cityPlaceholder: "शहर दर्ज करें",
-    state: "राज्य",
     statePlaceholder: "राज्य दर्ज करें",
-    country: "देश",
     countryPlaceholder: "देश दर्ज करें",
-    pincode: "पिनकोड",
     pincodePlaceholder: "पिनकोड दर्ज करें",
     latitude: "अक्षांश",
     latitudePlaceholder: "वैकल्पिक",
@@ -151,6 +202,7 @@ const translations = {
     requiredCategory: "व्यवसाय की श्रेणी आवश्यक है।",
     createFailed: "व्यवसाय बनाने में असमर्थ। कृपया फिर से प्रयास करें।",
   },
+
   bengali: {
     title: "আমার ব্যবসা",
     subtitle:
@@ -169,12 +221,43 @@ const translations = {
     rejected: "প্রত্যাখ্যাত",
     pending: "অপেক্ষমাণ",
     underReview: "পর্যালোচনাধীন",
+    active: "সক্রিয়",
+    cancelled: "বাতিল",
     businessCount: "ব্যবসা",
     businessesCount: "ব্যবসা",
     locationUnavailable: "অবস্থান উপলব্ধ নয়",
     errorDefault:
       "আপনার ব্যবসাগুলি লোড করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
     poweredBy: "AI-চালিত বিজনেস ওয়ার্কস্পেস",
+    manageBusiness: "ব্যবসা পরিচালনা করুন",
+    markActive: "সক্রিয় করুন",
+    markCancelled: "বাতিল করুন",
+    updatingStatus: "স্থিতি আপডেট হচ্ছে...",
+    statusUpdated: "ব্যবসার স্থিতি সফলভাবে আপডেট হয়েছে।",
+    statusUpdateFailed:
+      "ব্যবসার স্থিতি আপডেট করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+    confirmCancelled: "আপনি কি নিশ্চিত যে এই ব্যবসাটি বাতিল করতে চান?",
+    confirmActive: "আপনি কি নিশ্চিত যে এই ব্যবসাটি সক্রিয় করতে চান?",
+
+    search: "খুঁজুন",
+    searchBusinesses: "আপনার ব্যবসা খুঁজুন",
+    searchDescription: "আপনার ব্যবসা খুঁজতে এক বা একাধিক ফিল্টার ব্যবহার করুন।",
+    businessName: "ব্যবসার নাম",
+    category: "বিভাগ",
+    village: "গ্রাম",
+    district: "জেলা",
+    city: "শহর",
+    state: "রাজ্য",
+    country: "দেশ",
+    pincode: "পিনকোড",
+    status: "স্থিতি",
+    selectStatus: "স্থিতি নির্বাচন করুন",
+    clear: "পরিষ্কার করুন",
+    apply: "ব্যবসা খুঁজুন",
+    close: "বন্দ করুন",
+    activeFilters: "সক্রিয় ফিল্টার",
+    searchResults: "সার্চ ফলাফল",
+    reset: "রিসেট",
 
     createBusiness: "ব্যবসা তৈরি করুন",
     createBusinessDescription:
@@ -189,25 +272,17 @@ const translations = {
       "প্রোফাইলের ঠিকানা আনা যায়নি। অনুগ্রহ করে অবস্থান ম্যানুয়ালি পূরণ করুন।",
     businessInformation: "ব্যবসার তথ্য",
     locationInformation: "ব্যবসার অবস্থান",
-    businessName: "ব্যবসার নাম",
     businessNamePlaceholder: "ব্যবসার নাম লিখুন",
-    category: "ক্যাটাগরি",
     categoryPlaceholder: "যেমন: মুদি দোকান, রেস্তোরাঁ, উৎপাদন",
     description: "বিবরণ",
     descriptionPlaceholder: "আপনার ব্যবসার সংক্ষিপ্ত বিবরণ দিন",
     marginCapital: "মূলধন / বিনিয়োগ",
     marginCapitalPlaceholder: "পরিমাণ লিখুন",
-    village: "গ্রাম",
     villagePlaceholder: "গ্রাম লিখুন",
-    district: "জেলা",
     districtPlaceholder: "জেলা লিখুন",
-    city: "শহর",
     cityPlaceholder: "শহর লিখুন",
-    state: "রাজ্য",
     statePlaceholder: "রাজ্য লিখুন",
-    country: "দেশ",
     countryPlaceholder: "দেশ লিখুন",
-    pincode: "পিনকোড",
     pincodePlaceholder: "পিনকোড লিখুন",
     latitude: "অক্ষাংশ",
     latitudePlaceholder: "ঐচ্ছিক",
@@ -222,16 +297,57 @@ const translations = {
   },
 };
 
+const emptyFilters = {
+  business_name: "",
+  category: "",
+  village: "",
+  district: "",
+  city: "",
+  state: "",
+  country: "",
+  pincode: "",
+  status: "",
+};
+
+const languageMap = {
+  english: "en",
+  en: "en",
+  eng: "en",
+  hindi: "hi",
+  hi: "hi",
+  hin: "hi",
+  bengali: "bn",
+  bn: "bn",
+  bng: "bn",
+};
+
+const getLanguageCode = (language) => {
+  const normalized = String(language || "english")
+    .toLowerCase()
+    .trim();
+
+  return languageMap[normalized] || "en";
+};
+
 const MyBusinesses = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
 
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [filters, setFilters] = useState(emptyFilters);
+  const [appliedFilters, setAppliedFilters] = useState({});
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const t = translations[language] || translations.english;
+  const languageCode = getLanguageCode(language);
+
+  const activeFilterCount = Object.values(appliedFilters).filter(
+    (value) => String(value || "").trim() !== "",
+  ).length;
 
   const fetchBusinesses = async () => {
     try {
@@ -243,24 +359,76 @@ const MyBusinesses = () => {
 
       if (businessIds.length === 0) {
         setBusinesses([]);
+        setAppliedFilters({});
         return;
       }
 
       const businessResponses = await Promise.all(
         businessIds.map((businessId) =>
           api.get(`/businesses/${businessId}`, {
-            params: { language: language || "english" },
+            params: {
+              language: language || "english",
+            },
           }),
         ),
       );
 
       setBusinesses(businessResponses.map((response) => response.data));
+      setAppliedFilters({});
     } catch (err) {
       console.error("Failed to fetch businesses:", err);
       setError(err.response?.data?.detail || t.errorDefault);
     } finally {
       setLoading(false);
     }
+  };
+
+  const searchBusinesses = async (searchValues) => {
+    const cleanFilters = Object.fromEntries(
+      Object.entries(searchValues).filter(
+        ([, value]) => String(value || "").trim() !== "",
+      ),
+    );
+
+    try {
+      setSearching(true);
+      setError("");
+
+      const response = await api.get("/businesses/search", {
+        params: {
+          language: languageCode,
+          ...cleanFilters,
+        },
+      });
+
+      setBusinesses(Array.isArray(response.data) ? response.data : []);
+      setAppliedFilters(cleanFilters);
+      setSearchOpen(false);
+    } catch (err) {
+      console.error("Business search failed:", err);
+      setError(err.response?.data?.detail || t.errorDefault);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleFilterChange = (field, value) => {
+    setFilters((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const handleSearchSubmit = async (event) => {
+    event.preventDefault();
+    await searchBusinesses(filters);
+  };
+
+  const handleClearSearch = async () => {
+    setFilters(emptyFilters);
+    setAppliedFilters({});
+    setSearchOpen(false);
+    await fetchBusinesses();
   };
 
   useEffect(() => {
@@ -271,9 +439,42 @@ const MyBusinesses = () => {
     navigate(`/businesses/${businessId}`);
   };
 
+  const handleUpdateBusinessStatus = async (businessId, status) => {
+    try {
+      const backendState = status === "cancelled" ? "closed" : status;
+
+      const response = await api.patch(
+        `/businesses/${businessId}/status`,
+        null,
+        {
+          params: {
+            state: backendState,
+            language: language || "english",
+          },
+        },
+      );
+
+      const updatedBusiness = response.data;
+
+      if (updatedBusiness) {
+        setBusinesses((previous) =>
+          previous.map((business) =>
+            business.id === businessId ? updatedBusiness : business,
+          ),
+        );
+      } else {
+        await fetchBusinesses();
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Failed to update business status:", err);
+      throw err;
+    }
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-950 text-white">
-      {/* Background effects */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
         <div className="absolute -left-40 top-1/3 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
@@ -281,7 +482,6 @@ const MyBusinesses = () => {
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-blue-400">
@@ -298,32 +498,229 @@ const MyBusinesses = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(true)}
-            className="group inline-flex items-center justify-center gap-2 rounded-xl border border-blue-400/20 bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-[0_10px_30px_rgba(37,99,235,0.25)] transition-all duration-300 hover:-translate-y-1 hover:from-blue-500 hover:to-indigo-500 hover:shadow-[0_15px_35px_rgba(37,99,235,0.35)]"
-          >
-            <Plus
-              size={18}
-              className="transition-transform duration-300 group-hover:rotate-90"
-            />
-            {t.addBusiness}
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSearchOpen((previous) => !previous)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium text-white shadow-lg backdrop-blur-xl transition hover:border-blue-400/40 hover:bg-white/15 sm:w-auto"
+              >
+                <Search size={18} />
+                {t.search}
+
+                {activeFilterCount > 0 && (
+                  <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold">
+                    {activeFilterCount}
+                  </span>
+                )}
+
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform ${
+                    searchOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {searchOpen && (
+                <div className="absolute right-0 top-14 z-40 w-[min(92vw,680px)] rounded-2xl border border-white/10 bg-gray-900/95 p-5 shadow-2xl backdrop-blur-2xl">
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal
+                          size={18}
+                          className="text-blue-400"
+                        />
+                        <h2 className="font-semibold text-white">
+                          {t.searchBusinesses}
+                        </h2>
+                      </div>
+
+                      <p className="mt-1 text-sm text-gray-400">
+                        {t.searchDescription}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSearchOpen(false)}
+                      className="rounded-lg p-2 text-gray-400 transition hover:bg-white/10 hover:text-white"
+                      aria-label={t.close}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSearchSubmit}>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <SearchField
+                        label={t.businessName}
+                        value={filters.business_name}
+                        onChange={(value) =>
+                          handleFilterChange("business_name", value)
+                        }
+                      />
+
+                      <SearchField
+                        label={t.category}
+                        value={filters.category}
+                        onChange={(value) =>
+                          handleFilterChange("category", value)
+                        }
+                      />
+
+                      <SearchSelect
+                        label={t.status}
+                        value={filters.status}
+                        onChange={(value) =>
+                          handleFilterChange("status", value)
+                        }
+                        placeholder={t.selectStatus}
+                        options={[
+                          {
+                            value: "pending",
+                            label: t.pending,
+                          },
+                          {
+                            value: "active",
+                            label: t.active,
+                          },
+                          {
+                            value: "closed",
+                            label: t.cancelled,
+                          },
+                        ]}
+                      />
+
+                      <SearchField
+                        label={t.village}
+                        value={filters.village}
+                        onChange={(value) =>
+                          handleFilterChange("village", value)
+                        }
+                      />
+
+                      <SearchField
+                        label={t.district}
+                        value={filters.district}
+                        onChange={(value) =>
+                          handleFilterChange("district", value)
+                        }
+                      />
+
+                      <SearchField
+                        label={t.city}
+                        value={filters.city}
+                        onChange={(value) => handleFilterChange("city", value)}
+                      />
+
+                      <SearchField
+                        label={t.state}
+                        value={filters.state}
+                        onChange={(value) => handleFilterChange("state", value)}
+                      />
+
+                      <SearchField
+                        label={t.country}
+                        value={filters.country}
+                        onChange={(value) =>
+                          handleFilterChange("country", value)
+                        }
+                      />
+
+                      <SearchField
+                        label={t.pincode}
+                        value={filters.pincode}
+                        onChange={(value) =>
+                          handleFilterChange("pincode", value)
+                        }
+                      />
+                    </div>
+
+                    <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/10 hover:text-white"
+                      >
+                        {t.clear}
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={searching}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {searching ? (
+                          <Loader2 size={17} className="animate-spin" />
+                        ) : (
+                          <Search size={17} />
+                        )}
+                        {searching ? t.loading : t.apply}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="group inline-flex items-center justify-center gap-2 rounded-xl border border-blue-400/20 bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-[0_10px_30px_rgba(37,99,235,0.25)] transition-all duration-300 hover:-translate-y-1 hover:from-blue-500 hover:to-indigo-500 hover:shadow-[0_15px_35px_rgba(37,99,235,0.35)]"
+            >
+              <Plus
+                size={18}
+                className="transition-transform duration-300 group-hover:rotate-90"
+              />
+              {t.addBusiness}
+            </button>
+          </div>
         </div>
 
-        {/* Loading State */}
+        {activeFilterCount > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-gray-400">{t.searchResults}:</span>
+
+            {Object.entries(appliedFilters).map(([key, value]) => (
+              <span
+                key={key}
+                className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-300"
+              >
+                {key === "status"
+                  ? value === "active"
+                    ? t.active
+                    : value === "closed"
+                      ? t.cancelled
+                      : value === "pending"
+                        ? t.pending
+                        : value
+                  : value}
+              </span>
+            ))}
+
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="ml-1 text-xs font-medium text-gray-400 underline underline-offset-2 transition hover:text-white"
+            >
+              {t.reset}
+            </button>
+          </div>
+        )}
+
         {loading && (
           <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-gray-800 bg-gray-900/50 backdrop-blur-xl">
             <div className="flex flex-col items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
                 <Loader2 size={30} className="animate-spin text-blue-400" />
               </div>
+
               <p className="text-sm font-medium text-gray-400">{t.loading}</p>
             </div>
           </div>
         )}
 
-        {/* Error State */}
         {!loading && error && (
           <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 backdrop-blur-xl">
             <div className="flex flex-col items-start gap-5 sm:flex-row">
@@ -335,10 +732,16 @@ const MyBusinesses = () => {
                 <h2 className="text-lg font-bold text-white">
                   {t.unableToLoad}
                 </h2>
+
                 <p className="mt-2 text-sm leading-6 text-gray-400">{error}</p>
+
                 <button
                   type="button"
-                  onClick={fetchBusinesses}
+                  onClick={() =>
+                    activeFilterCount > 0
+                      ? searchBusinesses(filters)
+                      : fetchBusinesses()
+                  }
                   className="mt-5 inline-flex items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/80 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-gray-600 hover:bg-gray-700"
                 >
                   <RefreshCw size={16} />
@@ -349,7 +752,6 @@ const MyBusinesses = () => {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && !error && businesses.length === 0 && (
           <div className="relative flex min-h-[460px] items-center justify-center overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/50 p-8 backdrop-blur-xl">
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600/10 blur-3xl" />
@@ -364,26 +766,38 @@ const MyBusinesses = () => {
               </h2>
 
               <p className="mt-3 text-sm leading-7 text-gray-400">
-                {t.emptyDescription}
+                {activeFilterCount > 0
+                  ? t.searchDescription
+                  : t.emptyDescription}
               </p>
 
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(true)}
-                className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-[0_10px_25px_rgba(37,99,235,0.25)] transition-all duration-300 hover:-translate-y-1 hover:from-blue-500 hover:to-indigo-500"
-              >
-                <Plus size={18} />
-                {t.createFirst}
-              </button>
+              {activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-[0_10px_25px_rgba(37,99,235,0.25)] transition-all duration-300 hover:-translate-y-1 hover:from-blue-500 hover:to-indigo-500"
+                >
+                  {t.reset}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(true)}
+                  className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-[0_10px_25px_rgba(37,99,235,0.25)] transition-all duration-300 hover:-translate-y-1 hover:from-blue-500 hover:to-indigo-500"
+                >
+                  <Plus size={18} />
+                  {t.createFirst}
+                </button>
+              )}
             </div>
           </div>
         )}
 
-        {/* Business Cards Grid */}
         {!loading && !error && businesses.length > 0 && (
           <>
             <div className="mb-5 flex items-center gap-2 text-sm text-gray-500">
               <Building2 size={16} />
+
               <span>
                 {businesses.length}{" "}
                 {businesses.length === 1 ? t.businessCount : t.businessesCount}
@@ -397,6 +811,7 @@ const MyBusinesses = () => {
                   business={business}
                   t={t}
                   onOpen={handleOpenBusiness}
+                  onUpdateStatus={handleUpdateBusinessStatus}
                 />
               ))}
             </div>
@@ -404,7 +819,6 @@ const MyBusinesses = () => {
         )}
       </div>
 
-      {/* Create Business Modal */}
       <CreateBusinessModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
@@ -413,6 +827,54 @@ const MyBusinesses = () => {
         t={t}
       />
     </div>
+  );
+};
+
+const SearchField = ({ label, value, onChange }) => {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-medium text-gray-400">
+        {label}
+      </span>
+
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={label}
+        className="w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-blue-400/50 focus:bg-white/10"
+      />
+    </label>
+  );
+};
+
+const SearchSelect = ({ label, value, onChange, placeholder, options }) => {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-medium text-gray-400">
+        {label}
+      </span>
+
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border border-white/10 bg-gray-900 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-blue-400/50"
+      >
+        <option value="" className="bg-gray-900">
+          {placeholder}
+        </option>
+
+        {options.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+            className="bg-gray-900"
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 };
 

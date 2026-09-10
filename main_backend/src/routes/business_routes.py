@@ -9,10 +9,11 @@ from src.controllers.business_controller import (
     mark_business_state,
     search_businesses,
     search_other_businesses,
-    get_active_businesses
+    get_active_businesses,
+    get_business_owner_contact
 )
 from src.middlewares.auth import verify_token
-from src.models.business_request import BusinessCreateRequest, BusinessResponse
+from src.models.business_request import BusinessCreateRequest, BusinessResponse, BusinessOwnerContactResponse
 from src.schema.business import BusinessStatus
 
 router = APIRouter()
@@ -174,6 +175,9 @@ async def list_active_businesses(
 async def mark_business_state_route(
     business_id: str,
     state: BusinessStatus,
+    language: str = Query(
+        "english", description="Response language (e.g., english, en, hindi, hi)"
+    ),
     user_id: str = Depends(verify_token),
     db: AsyncSession = Depends(get_db),
 ):
@@ -181,6 +185,29 @@ async def mark_business_state_route(
         user_id=user_id,
         business_id=business_id,
         state=state,
+        language=language,
+        db=db,
+    )
+
+# =========================================================
+# GET BUSINESS OWNER CONTACT DETAILS
+# =========================================================
+
+
+@router.get(
+    "/{business_id}/contact",
+    response_model=BusinessOwnerContactResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get business owner contact details",
+)
+async def get_business_owner_contact_route(
+    business_id: str,
+    db: AsyncSession = Depends(get_db),
+    # Uncomment the next line if authentication is required to view contacts:
+    user_id: str = Depends(verify_token),
+):
+    return await get_business_owner_contact(
+        business_id=business_id,
         db=db,
     )
 
@@ -207,5 +234,7 @@ async def get_business_route(
         owner_id=user_id,
         db=db,
     )
+
+
 
 

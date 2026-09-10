@@ -459,8 +459,11 @@ async def mark_business_state(
     user_id: str,
     business_id: str,
     state: BusinessStatus,
+    language: str,
     db: AsyncSession,
-):
+) -> BusinessResponse:
+    lang_code = normalize_language(language)
+
     result = await db.execute(
         select(Business).where(
             Business.id == business_id,
@@ -479,6 +482,16 @@ async def mark_business_state(
     business.status = state
 
     try:
+        # Flush status changes before running translation checks
+        await db.flush()
+
+        # Ensure all multilingual fields are translated to the target language
+        await ensure_business_language(
+            business=business,
+            target_language=lang_code,
+            db=db,
+        )
+
         await db.commit()
         await db.refresh(business)
 
@@ -489,7 +502,25 @@ async def mark_business_state(
             detail="Unable to update business status",
         )
 
-    return business
+    return BusinessResponse(
+        id=business.id,
+        owner_id=business.owner_id,
+        business_name=(business.business_name or {}).get(lang_code, ""),
+        category=(business.category or {}).get(lang_code, ""),
+        description=(business.description or {}).get(lang_code),
+        village=(business.village or {}).get(lang_code),
+        district=(business.district or {}).get(lang_code, ""),
+        city=(business.city or {}).get(lang_code),
+        state=(business.state or {}).get(lang_code, ""),
+        country=(business.country or {}).get(lang_code, ""),
+        margin_capital=business.margin_capital,
+        pincode=business.pincode,
+        latitude=business.latitude,
+        longitude=business.longitude,
+        status=business.status,
+        created_at=business.created_at,
+        updated_at=business.updated_at,
+    )
 
 
 async def search_businesses(
@@ -732,3 +763,48 @@ async def get_active_businesses(
     await db.commit()
 
     return responses
+
+
+from fastapi import status
+from src.models.business_request import BusinessOwnerContactResponse
+from src.schema.user import User  # Adjust import path to your User SQLAlchemy model
+
+
+async def get_business_owner_contact(
+    business_id: str,
+    db: AsyncSession,
+) -> BusinessOwnerContactResponse:
+    # Query Business and join User by owner_id
+    query = (
+        select(Business, User)
+        .join(User, Business.owner_id == User.user_id)
+        .where(Business.id == business_id)
+    )
+
+    result = await db.execute(query)
+    record = result.first()
+
+    if not record:
+        # Check if the business exists without a user, or doesn't exist at all
+        business_check = await db.scalar(
+            select(Business.id).where(Business.id == business_id)
+        )
+        if not business_check:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Business not found",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Owner contact details not found",
+        )
+
+    business, owner = record
+
+    return BusinessOwnerContactResponse(
+        business_id=str(business.id),
+        owner_id=str(owner.user_id),
+        owner_name=getattr(owner, "full_name", getattr(owner, "name", None)),
+        email=getattr(owner, "email", None),
+        phone_number=getattr(owner, "phone_number", getattr(owner, "phone", None)),
+    )

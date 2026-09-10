@@ -14,14 +14,13 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  FileText,
 } from "lucide-react";
 
 const Sidebar = () => {
   const { language, toggleLanguage } = useLanguage();
   const { user, logout } = useAuth();
   const location = useLocation();
-
-  // Sidebar visibility state
   const [isOpen, setIsOpen] = useState(true);
 
   const isActive = (path) => location.pathname === path;
@@ -34,6 +33,7 @@ const Sidebar = () => {
       signup: "Sign Up",
       dashboard: "Dashboard",
       myBusinesses: "My Businesses",
+      businessDetails: "Business Directory",
       language: "Language",
       profile: "Profile",
       english: "English",
@@ -41,7 +41,6 @@ const Sidebar = () => {
       bengali: "Bengali (বাংলা)",
       logout: "Log Out",
     },
-
     hindi: {
       finance: "वित्त",
       home: "होम",
@@ -49,6 +48,7 @@ const Sidebar = () => {
       signup: "साइन अप",
       dashboard: "डैशबोर्ड",
       myBusinesses: "मेरे व्यवसाय",
+      businessDetails: "व्यवसाय निर्देशिका",
       language: "भाषा",
       profile: "प्रोफ़ाइल",
       english: "अंग्रेज़ी",
@@ -56,7 +56,6 @@ const Sidebar = () => {
       bengali: "बंगाली (বাংলা)",
       logout: "लॉग आउट",
     },
-
     bengali: {
       finance: "অর্থ",
       home: "হোম",
@@ -64,6 +63,7 @@ const Sidebar = () => {
       signup: "সাইন আপ",
       dashboard: "ড্যাশবোর্ড",
       myBusinesses: "আমার ব্যবসা",
+      businessDetails: "ব্যবসা ডিরেক্টরি",
       language: "ভাষা",
       profile: "প্রোফাইল",
       english: "ইংরেজি",
@@ -98,7 +98,6 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Floating Reopen Button (visible only when sidebar is collapsed) */}
       {!isOpen && (
         <button
           type="button"
@@ -110,7 +109,6 @@ const Sidebar = () => {
         </button>
       )}
 
-      {/* Main Sidebar */}
       <aside
         className={`h-screen bg-gray-950/90 backdrop-blur-md border-r border-gray-800 flex flex-col justify-between flex-shrink-0 sticky top-0 shadow-[20px_0_50px_rgba(0,0,0,0.5)] z-40 transition-all duration-300 ease-in-out ${
           isOpen
@@ -118,14 +116,10 @@ const Sidebar = () => {
             : "w-0 opacity-0 pointer-events-none border-none p-0 overflow-hidden"
         }`}
       >
-        {/* Inner container to ensure width remains stable during sliding animation */}
         <div className="w-64 h-full flex flex-col justify-between">
-          {/* 3D Inner Edge Reflection */}
           <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent pointer-events-none" />
 
-          {/* Top Section */}
           <div className="p-6 relative z-10 overflow-y-auto">
-            {/* Logo + Close Toggle */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center space-x-3 transform preserve-3d hover:rotate-y-12 transition-transform duration-500">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_10px_20px_rgba(37,99,235,0.4)] translate-z-10 border-t border-l border-white/20">
@@ -139,7 +133,6 @@ const Sidebar = () => {
                 </h1>
               </div>
 
-              {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -150,7 +143,6 @@ const Sidebar = () => {
               </button>
             </div>
 
-            {/* Navigation Links */}
             <nav className="space-y-3 perspective-[1000px]">
               <Link to="/" className={getLinkClasses("/")}>
                 <Home
@@ -191,7 +183,9 @@ const Sidebar = () => {
                     <span className="font-semibold">{t.dashboard}</span>
                   </Link>
 
-                  {user.role === "enterpreneur" && (
+                  {["enterpreneur", "entrepreneur"].includes(
+                    String(user.role || "").toLowerCase(),
+                  ) && (
                     <Link
                       to="/businesses"
                       className={getLinkClasses("/businesses")}
@@ -207,12 +201,24 @@ const Sidebar = () => {
                   )}
                 </>
               )}
+
+              {/* Public Business Details - available to logged-in and logged-out users */}
+              <Link
+                to="/businesses/details"
+                className={getLinkClasses("/businesses/details")}
+              >
+                <FileText
+                  size={20}
+                  className={
+                    isActive("/businesses/details") ? "drop-shadow-md" : ""
+                  }
+                />
+                <span className="font-semibold">{t.businessDetails}</span>
+              </Link>
             </nav>
           </div>
 
-          {/* Bottom Section */}
           <div className="p-6 space-y-4 relative z-10 perspective-[1000px]">
-            {/* Language Selector */}
             <div className="bg-gray-900/80 rounded-2xl p-4 border border-gray-800 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5),0_10px_20px_rgba(0,0,0,0.2)] transform preserve-3d hover:rotate-x-6 transition-transform duration-500">
               <div className="flex items-center space-x-2 text-gray-400 mb-4 text-sm font-semibold translate-z-6">
                 <Globe size={16} />
@@ -255,7 +261,6 @@ const Sidebar = () => {
               </div>
             </div>
 
-            {/* Profile */}
             {user && (
               <Link
                 to="/profile"
@@ -297,7 +302,6 @@ const Sidebar = () => {
               </Link>
             )}
 
-            {/* Logout Button */}
             {user && (
               <button
                 onClick={logout}

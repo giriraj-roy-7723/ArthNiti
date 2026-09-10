@@ -1,13 +1,30 @@
-import { ArrowRight, Building2, MapPin } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowRight,
+  Building2,
+  Check,
+  Loader2,
+  MapPin,
+  MoreVertical,
+  X,
+} from "lucide-react";
 
-const BusinessCard = ({ business, t, onOpen }) => {
+const BusinessCard = ({ business, t, onOpen, onUpdateStatus }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const menuRef = useRef(null);
+
   const getStatusLabel = (status) => {
     if (!status) return "";
+
     const normalizedStatus = status.toLowerCase();
 
     if (normalizedStatus === "approved") return t.approved;
     if (normalizedStatus === "rejected") return t.rejected;
     if (normalizedStatus === "pending") return t.pending;
+    if (normalizedStatus === "active") return t.active;
+    if (normalizedStatus === "cancelled") return t.cancelled;
+
     if (
       normalizedStatus === "under_review" ||
       normalizedStatus === "under-review"
@@ -22,8 +39,10 @@ const BusinessCard = ({ business, t, onOpen }) => {
 
   const getStatusClasses = (status) => {
     switch (status?.toLowerCase()) {
+      case "active":
       case "approved":
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "cancelled":
       case "rejected":
         return "bg-red-500/10 text-red-400 border-red-500/20";
       case "pending":
@@ -34,13 +53,54 @@ const BusinessCard = ({ business, t, onOpen }) => {
     }
   };
 
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [menuOpen]);
+
+  const handleStatusChange = async (status) => {
+    if (updatingStatus || business.status === status) {
+      setMenuOpen(false);
+      return;
+    }
+
+    const confirmationMessage =
+      status === "cancelled" ? t.confirmCancelled : t.confirmActive;
+
+    if (!window.confirm(confirmationMessage)) {
+      return;
+    }
+
+    try {
+      setUpdatingStatus(true);
+      setMenuOpen(false);
+
+      await onUpdateStatus(business.id, status);
+    } catch (error) {
+      console.error("Business status update failed:", error);
+      window.alert(error?.response?.data?.detail || t.statusUpdateFailed);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const isActive = business.status?.toLowerCase() === "active";
+  const isCancelled = business.status?.toLowerCase() === "cancelled";
+
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(business.id)}
-      className="group text-left"
-    >
-      <div className="relative h-full overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/70 p-6 shadow-[0_15px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-blue-500/30 hover:bg-gray-900 hover:shadow-[0_20px_50px_rgba(37,99,235,0.12)]">
+    <div className="group text-left">
+      <div className="relative h-full overflow-visible rounded-2xl border border-gray-800 bg-gray-900/70 p-6 shadow-[0_15px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-blue-500/30 hover:bg-gray-900 hover:shadow-[0_20px_50px_rgba(37,99,235,0.12)]">
         <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-600/10 blur-3xl transition-opacity duration-300 group-hover:opacity-100" />
 
         <div className="relative flex items-start justify-between">
@@ -48,18 +108,90 @@ const BusinessCard = ({ business, t, onOpen }) => {
             <Building2 size={25} className="text-blue-400" />
           </div>
 
-          {business.status && (
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(
-                business.status,
-              )}`}
+          <div ref={menuRef} className="relative flex items-center gap-2">
+            {business.status && (
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(
+                  business.status,
+                )}`}
+              >
+                {getStatusLabel(business.status)}
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuOpen((previous) => !previous);
+              }}
+              disabled={updatingStatus}
+              aria-label={t.manageBusiness}
+              title={t.manageBusiness}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-800 bg-gray-800/60 text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-700/80 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {getStatusLabel(business.status)}
-            </span>
-          )}
+              {updatingStatus ? (
+                <Loader2 size={17} className="animate-spin" />
+              ) : (
+                <MoreVertical size={18} />
+              )}
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-xl border border-gray-700 bg-gray-900 shadow-2xl shadow-black/40">
+                <div className="border-b border-gray-800 px-3 py-2.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    {t.manageBusiness}
+                  </p>
+                </div>
+
+                <div className="p-1.5">
+                  <button
+                    type="button"
+                    disabled={isActive || updatingStatus}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleStatusChange("active");
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-gray-300 transition hover:bg-emerald-500/10 hover:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Check size={16} />
+                    <span>{t.markActive}</span>
+
+                    {isActive && (
+                      <span className="ml-auto text-xs text-emerald-400">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isCancelled || updatingStatus}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleStatusChange("cancelled");
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-gray-300 transition hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <X size={16} />
+                    <span>{t.markCancelled}</span>
+
+                    {isCancelled && (
+                      <span className="ml-auto text-xs text-red-400">✓</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="relative mt-6">
+        <button
+          type="button"
+          onClick={() => onOpen(business.id)}
+          className="relative mt-6 block w-full text-left"
+        >
           <h2 className="line-clamp-1 text-xl font-bold text-white">
             {business.business_name || t.unnamedBusiness}
           </h2>
@@ -72,28 +204,29 @@ const BusinessCard = ({ business, t, onOpen }) => {
 
           <div className="mt-5 flex min-h-[24px] items-center gap-2 text-sm text-gray-500">
             <MapPin size={16} className="shrink-0 text-gray-600" />
+
             <span className="line-clamp-1">
               {business.city || business.state
                 ? [business.city, business.state].filter(Boolean).join(", ")
                 : t.locationUnavailable}
             </span>
           </div>
-        </div>
 
-        <div className="relative mt-6 flex items-center justify-between border-t border-gray-800 pt-5">
-          <span className="text-sm font-bold text-gray-300 transition-colors group-hover:text-white">
-            {t.openWorkspace}
-          </span>
+          <div className="mt-6 flex items-center justify-between border-t border-gray-800 pt-5">
+            <span className="text-sm font-bold text-gray-300 transition-colors group-hover:text-white">
+              {t.openWorkspace}
+            </span>
 
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-800 bg-gray-800/50 transition-all duration-300 group-hover:border-blue-500/30 group-hover:bg-blue-500/10">
-            <ArrowRight
-              size={17}
-              className="text-gray-500 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-blue-400"
-            />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-800 bg-gray-800/50 transition-all duration-300 group-hover:border-blue-500/30 group-hover:bg-blue-500/10">
+              <ArrowRight
+                size={17}
+                className="text-gray-500 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-blue-400"
+              />
+            </div>
           </div>
-        </div>
+        </button>
       </div>
-    </button>
+    </div>
   );
 };
 
