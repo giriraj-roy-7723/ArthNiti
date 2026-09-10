@@ -77,11 +77,7 @@ const Login = () => {
       );
       if (res.data.access_token) {
         login(res.data.access_token, res.data.user);
-        navigate(
-          res.data.user?.role === "enterpreneur"
-            ? "/dashboard/business-analysis"
-            : "/",
-        );
+        navigate(res.data.user ? "/dashboard" : "/");
       }
     } catch (err) {
       if (!err.response) {
@@ -156,7 +152,7 @@ const Login = () => {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
                   id="remember-me"
@@ -180,7 +176,7 @@ const Login = () => {
                   {t.forgot}
                 </a>
               </div>
-            </div>
+            </div> */}
 
             <button
               type="submit"

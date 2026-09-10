@@ -35,6 +35,7 @@ class Business(Base):
     city = Column(JSONB, nullable=True, default=dict)
     state = Column(JSONB, nullable=False, default=dict)
     country = Column(JSONB, nullable=False, default=dict)
+    image_urls = Column(JSONB, nullable=True)
 
     # Numeric/System fields (not translated)
     margin_capital = Column(Float, nullable=False)

@@ -5,15 +5,20 @@ from langchain_core.tools import tool
 from tavily import TavilyClient
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schema.financial_analysis import FinancialAnalysis
 from src.schema.business_profile import BusinessProfile
 from src.schema.business_analysis import BusinessAnalysis
-from src.schema.business import Business
-
-# Assumed model import for chat sessions
+from src.schema.business import (
+    Business,
+    BusinessStatus,
+)  # Ensure BusinessStatus is imported
 from src.schema.chat import ChatSession
+
+# Import your multi-language utility if needed:
+# from src.services.localization import ensure_business_language, normalize_language
 
 from src.services.business_report_search import (
     search_business_report as report_vector_search,
@@ -74,12 +79,78 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
         }
 
     @tool
+    async def update_business_status(
+        new_status: Literal[
+            "pending","active","closed"
+        ],
+        language: str = "en",
+    ) -> dict:
+        """
+        DATABASE MUTATION TOOL: Updates the lifecycle or operational status of the current business.
+        CRITICAL: Never run this tool without explicit user permission and confirmation.
+
+        Args:
+            new_status: The target status value to apply to the business.
+            language: The target language code for localization checks (defaults to 'en').
+        """
+        try:
+            stmt = select(Business).where(
+                Business.id == business_id,
+                Business.owner_id == user_id,
+            )
+            result = await db.execute(stmt)
+            business = result.scalar_one_or_none()
+
+            if not business:
+                return {"error": "Business not found or access denied."}
+
+            old_status = (
+                business.status.value
+                if hasattr(business.status, "value")
+                else str(business.status)
+            )
+
+            # Convert string to Enum if needed
+            target_status = (
+                BusinessStatus[new_status]
+                if hasattr(BusinessStatus, new_status)
+                else new_status
+            )
+            business.status = target_status
+
+            await db.flush()
+
+            # Optional: if ensure_business_language is configured in your project
+            # await ensure_business_language(business=business, target_language=language, db=db)
+
+            await db.commit()
+            await db.refresh(business)
+
+            updated_status_str = (
+                business.status.value
+                if hasattr(business.status, "value")
+                else str(business.status)
+            )
+
+            return {
+                "success": True,
+                "message": f"Business status successfully updated from '{old_status}' to '{updated_status_str}'.",
+                "business_id": business.id,
+                "new_status": updated_status_str,
+            }
+
+        except IntegrityError as e:
+            await db.rollback()
+            return {"error": f"Database integrity error updating status: {str(e)}"}
+        except Exception as e:
+            await db.rollback()
+            return {"error": f"Failed to update business status: {str(e)}"}
+
+    @tool
     async def get_all_other_user_businesses() -> list[dict] | dict:
         """
         Retrieves an overview of all other businesses registered by this user,
         excluding the currently selected business.
-        Use this tool when the user references their other ventures, wants to compare
-        multiple businesses, or check cross-business context.
         """
         stmt = (
             select(Business)
@@ -109,11 +180,6 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
     async def get_previous_chat_session_summaries(limit: int = 5) -> list[dict] | dict:
         """
         Retrieves concise historical summaries of past chat sessions for this specific business.
-        Use this tool to recall past conversations, previously discussed strategies, questions,
-        or decisions made in prior interactions with this business.
-
-        Args:
-            limit: Maximum number of recent session summaries to fetch. Defaults to 5.
         """
         stmt = (
             select(ChatSession)
@@ -157,7 +223,6 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
     ) -> dict:
         """
         Retrieves raw underlying evidence JSON datasets from the latest Feasibility Analysis.
-        Use this when exact numerical metrics or specific raw evidence are needed.
         """
         stmt = (
             select(BusinessAnalysis)
@@ -204,8 +269,6 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
     async def get_financial_analysis() -> dict:
         """
         Retrieves the latest financial calculation data and plan for this business.
-        Use this tool when answering questions about financial projections, EMIs,
-        startup capital, loan requirements, estimated profits, cashflow, or break-even.
         """
         stmt = (
             select(FinancialAnalysis)
@@ -310,6 +373,7 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
 
     return [
         get_business_details,
+        update_business_status,  # Added tool
         get_all_other_user_businesses,
         get_previous_chat_session_summaries,
         get_business_profile,

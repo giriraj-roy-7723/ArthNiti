@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.database import get_db
@@ -9,10 +9,20 @@ from src.controllers.business_controller import (
     mark_business_state,
     search_businesses,
     search_other_businesses,
-    get_active_businesses
+    get_active_businesses,
+    get_business_owner_contact,
+    get_business_images,
+    update_business_images,
+    clear_business_images,
 )
 from src.middlewares.auth import verify_token
-from src.models.business_request import BusinessCreateRequest, BusinessResponse
+from src.models.business_request import (
+    BusinessCreateRequest,
+    BusinessResponse,
+    BusinessOwnerContactResponse,
+    BusinessImagesResponse,
+    BusinessImagesUpdateRequest,
+)
 from src.schema.business import BusinessStatus
 
 router = APIRouter()
@@ -107,6 +117,20 @@ async def search_businesses_route(
 # =========================================================
 
 
+# Optional token resolver helper:
+async def get_optional_user_id(
+    authorization: str | None = Header(default=None),
+) -> str | None:
+    if not authorization:
+        return None
+    try:
+        # If your verify_token accepts the raw header string:
+        return await verify_token(authorization)
+    except HTTPException:
+        # Invalid/expired token falls back to anonymous
+        return None
+
+
 @router.get(
     "/search/others",
     response_model=list[BusinessResponse],
@@ -123,7 +147,7 @@ async def search_other_businesses_route(
     state: str | None = None,
     country: str | None = None,
     pincode: str | None = None,
-    user_id: str = Depends(verify_token),
+    user_id: str | None = Depends(get_optional_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     return await search_other_businesses(
@@ -137,10 +161,9 @@ async def search_other_businesses_route(
         city=city,
         state=state,
         country=country,
-        user_id= user_id,
         pincode=pincode,
+        user_id=user_id,
     )
-
 
 
 @router.get(
@@ -149,17 +172,16 @@ async def search_other_businesses_route(
     summary="Get active businesses for public directory",
 )
 async def list_active_businesses(
+    user_id: str | None = None,
     language: str = Query("en", description="Target language code (e.g., en, hi, bn)"),
     limit: int = Query(20, ge=1, le=100, description="Number of items to fetch"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: AsyncSession = Depends(get_db),
 ):
     return await get_active_businesses(
-        language=language,
-        db=db,
-        limit=limit,
-        offset=offset,
+        language=language, db=db, limit=limit, offset=offset, user_id=user_id
     )
+
 
 # =========================================================
 # UPDATE BUSINESS STATUS
@@ -174,6 +196,9 @@ async def list_active_businesses(
 async def mark_business_state_route(
     business_id: str,
     state: BusinessStatus,
+    language: str = Query(
+        "english", description="Response language (e.g., english, en, hindi, hi)"
+    ),
     user_id: str = Depends(verify_token),
     db: AsyncSession = Depends(get_db),
 ):
@@ -181,6 +206,30 @@ async def mark_business_state_route(
         user_id=user_id,
         business_id=business_id,
         state=state,
+        language=language,
+        db=db,
+    )
+
+
+# =========================================================
+# GET BUSINESS OWNER CONTACT DETAILS
+# =========================================================
+
+
+@router.get(
+    "/{business_id}/contact",
+    response_model=BusinessOwnerContactResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get business owner contact details",
+)
+async def get_business_owner_contact_route(
+    business_id: str,
+    db: AsyncSession = Depends(get_db),
+    # Uncomment the next line if authentication is required to view contacts:
+    user_id: str = Depends(verify_token),
+):
+    return await get_business_owner_contact(
+        business_id=business_id,
         db=db,
     )
 
@@ -188,6 +237,78 @@ async def mark_business_state_route(
 # =========================================================
 # GET SINGLE BUSINESS
 # =========================================================
+
+
+@router.get(
+    "/{business_id}/images",
+    response_model=BusinessImagesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get business image URLs",
+)
+async def get_business_images_route(
+    business_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_business_images(business_id=business_id, db=db)
+
+
+@router.put(
+    "/{business_id}/images",
+    response_model=BusinessImagesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Replace business image URLs",
+)
+async def replace_business_images_route(
+    business_id: str,
+    data: BusinessImagesUpdateRequest,
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_business_images(
+        business_id=business_id,
+        owner_id=user_id,
+        data=data,
+        db=db,
+    )
+
+
+@router.post(
+    "/{business_id}/images",
+    response_model=BusinessImagesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Append business image URLs",
+)
+async def append_business_images_route(
+    business_id: str,
+    data: BusinessImagesUpdateRequest,
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_business_images(
+        business_id=business_id,
+        owner_id=user_id,
+        data=data,
+        db=db,
+        append=True,
+    )
+
+
+@router.delete(
+    "/{business_id}/images",
+    response_model=BusinessImagesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Clear business image URLs",
+)
+async def clear_business_images_route(
+    business_id: str,
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await clear_business_images(
+        business_id=business_id,
+        owner_id=user_id,
+        db=db,
+    )
 
 
 @router.get(
@@ -207,5 +328,3 @@ async def get_business_route(
         owner_id=user_id,
         db=db,
     )
-
-

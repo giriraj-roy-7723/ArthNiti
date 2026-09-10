@@ -1,13 +1,5 @@
-import { BarChart3 } from "lucide-react";
-import EntrepreneurPage from "./EntrepreneurPage";
+import RoleDashboard from "./RoleDashboard";
 
 export default function Dashboard() {
-  return (
-    <EntrepreneurPage
-      icon={BarChart3}
-      eyebrow="Entrepreneur workspace"
-      title="Business Analysis"
-      description="Understand your market, operations, and growth opportunities in one place."
-    />
-  );
+  return <RoleDashboard />;
 }

@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Logout request failed:", error);
     } finally {
-      navigate("/home");
+      navigate("/");
       removeToken();
       localStorage.removeItem("user");
       setUser(null);

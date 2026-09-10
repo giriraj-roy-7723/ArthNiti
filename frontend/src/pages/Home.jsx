@@ -16,6 +16,7 @@ import {
   Database,
   Languages,
   Store,
+  Building2,
   WalletCards,
   Target,
   Sparkles,
@@ -74,6 +75,9 @@ const Home = () => {
       capitalDesc: "Your margin contribution",
       category: "Business Category",
       categoryDesc: "Dairy / Retail / Textiles etc.",
+      directory: "Business Directory",
+      directoryDesc:
+        "Explore active local businesses by category and location, then connect with owners.",
       analyze: "Analyze My Business",
 
       // Module section
@@ -243,6 +247,9 @@ const Home = () => {
       capitalDesc: "आपका मार्जिन योगदान",
       category: "व्यवसाय श्रेणी",
       categoryDesc: "डेयरी / रिटेल / टेक्सटाइल आदि",
+      directory: "व्यवसाय निर्देशिका",
+      directoryDesc:
+        "श्रेणी और स्थान के आधार पर सक्रिय स्थानीय व्यवसाय खोजें और मालिकों से जुड़ें।",
       analyze: "मेरे व्यवसाय का विश्लेषण करें",
 
       modulesBadge: "तीन मुख्य मॉड्यूल",
@@ -401,6 +408,9 @@ const Home = () => {
       capitalDesc: "আপনার মার্জিন অবদান",
       category: "ব্যবসার বিভাগ",
       categoryDesc: "ডেইরি / রিটেল / টেক্সটাইল ইত্যাদি",
+      directory: "ব্যবসা ডিরেক্টরি",
+      directoryDesc:
+        "বিভাগ ও অবস্থান অনুযায়ী সক্রিয় স্থানীয় ব্যবসা খুঁজুন এবং মালিকদের সাথে যোগাযোগ করুন।",
       analyze: "আমার ব্যবসা বিশ্লেষণ করুন",
 
       modulesBadge: "তিনটি মূল মডিউল",
@@ -710,14 +720,18 @@ const Home = () => {
             <p className="text-gray-400 mt-5 text-lg">{t.advisoryDesc}</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5 mt-12">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mt-12">
             {[
               [MapPin, t.location, t.locationDesc],
               [WalletCards, t.capital, t.capitalDesc],
               [Store, t.category, t.categoryDesc],
+              [Building2, t.directory, t.directoryDesc],
             ].map(([Icon, title, desc], index) => (
-              <div
+              <Link
                 key={index}
+                to={
+                  title === t.directory ? "/businesses/details" : dashboardPath
+                }
                 className="group p-7 bg-gray-900 border border-gray-800 rounded-2xl hover:border-blue-500/40 hover:-translate-y-1 transition-all"
               >
                 <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-5">
@@ -726,7 +740,13 @@ const Home = () => {
 
                 <h3 className="font-bold text-lg">{title}</h3>
                 <p className="text-gray-500 text-sm mt-2">{desc}</p>
-              </div>
+                {title === t.directory && (
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue-400">
+                    {t.explore}
+                    <ArrowRight size={16} />
+                  </span>
+                )}
+              </Link>
             ))}
           </div>
 

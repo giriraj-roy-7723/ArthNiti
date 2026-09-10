@@ -1,15 +1,28 @@
 import asyncio
-from fastapi import HTTPException
-from sqlalchemy import select
+from fastapi import HTTPException, status
+
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
+from src.schema.user import User
 from src.schema.business import Business, BusinessStatus
-from src.models.business_request import BusinessCreateRequest, BusinessResponse
+from src.models.business_request import (
+    BusinessCreateRequest,
+    BusinessImagesResponse,
+    BusinessImagesUpdateRequest,
+    BusinessResponse,
+    BusinessOwnerContactResponse,
+)
+
 from src.utils.translator_utils import translate_entry
 from src.utils.geo_utils import get_coordinates
 from src.utils.business_category_verifier import normalize_and_validate_category
+
+from src.services.distance_service import (
+    ensure_user_coordinates,
+    calculate_haversine_distance,
+)
 
 
 MULTILINGUAL_BUSINESS_FIELDS = [
@@ -459,8 +472,11 @@ async def mark_business_state(
     user_id: str,
     business_id: str,
     state: BusinessStatus,
+    language: str,
     db: AsyncSession,
-):
+) -> BusinessResponse:
+    lang_code = normalize_language(language)
+
     result = await db.execute(
         select(Business).where(
             Business.id == business_id,
@@ -479,6 +495,16 @@ async def mark_business_state(
     business.status = state
 
     try:
+        # Flush status changes before running translation checks
+        await db.flush()
+
+        # Ensure all multilingual fields are translated to the target language
+        await ensure_business_language(
+            business=business,
+            target_language=lang_code,
+            db=db,
+        )
+
         await db.commit()
         await db.refresh(business)
 
@@ -489,7 +515,119 @@ async def mark_business_state(
             detail="Unable to update business status",
         )
 
-    return business
+    return BusinessResponse(
+        id=business.id,
+        owner_id=business.owner_id,
+        business_name=(business.business_name or {}).get(lang_code, ""),
+        category=(business.category or {}).get(lang_code, ""),
+        description=(business.description or {}).get(lang_code),
+        village=(business.village or {}).get(lang_code),
+        district=(business.district or {}).get(lang_code, ""),
+        city=(business.city or {}).get(lang_code),
+        state=(business.state or {}).get(lang_code, ""),
+        country=(business.country or {}).get(lang_code, ""),
+        margin_capital=business.margin_capital,
+        pincode=business.pincode,
+        latitude=business.latitude,
+        longitude=business.longitude,
+        status=business.status,
+        created_at=business.created_at,
+        updated_at=business.updated_at,
+    )
+
+
+def _build_business_response(business: Business, lang_code: str) -> BusinessResponse:
+    return BusinessResponse(
+        id=business.id,
+        owner_id=business.owner_id,
+        business_name=(business.business_name or {}).get(lang_code, ""),
+        category=(business.category or {}).get(lang_code, ""),
+        description=(business.description or {}).get(lang_code),
+        village=(business.village or {}).get(lang_code),
+        district=(business.district or {}).get(lang_code, ""),
+        city=(business.city or {}).get(lang_code),
+        state=(business.state or {}).get(lang_code, ""),
+        country=(business.country or {}).get(lang_code, ""),
+        margin_capital=business.margin_capital,
+        pincode=business.pincode,
+        latitude=business.latitude,
+        longitude=business.longitude,
+        status=business.status,
+        created_at=business.created_at,
+        updated_at=business.updated_at,
+    )
+
+
+async def get_business_images(
+    business_id: str,
+    db: AsyncSession,
+) -> BusinessImagesResponse:
+    result = await db.execute(select(Business).where(Business.id == business_id))
+    business = result.scalar_one_or_none()
+
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    return BusinessImagesResponse(
+        business_id=business.id,
+        image_urls=business.image_urls or [],
+    )
+
+
+async def update_business_images(
+    business_id: str,
+    owner_id: str,
+    data: BusinessImagesUpdateRequest,
+    db: AsyncSession,
+    append: bool = False,
+) -> BusinessImagesResponse:
+    result = await db.execute(
+        select(Business).where(
+            Business.id == business_id,
+            Business.owner_id == owner_id,
+        )
+    )
+    business = result.scalar_one_or_none()
+
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    incoming_urls = [str(url) for url in data.image_urls]
+    existing_urls = business.image_urls or []
+    image_urls = existing_urls + incoming_urls if append else incoming_urls
+
+    # Preserve upload order while avoiding duplicate URLs.
+    business.image_urls = list(dict.fromkeys(image_urls)) or None
+
+    await db.commit()
+    await db.refresh(business)
+
+    return BusinessImagesResponse(
+        business_id=business.id,
+        image_urls=business.image_urls or [],
+    )
+
+
+async def clear_business_images(
+    business_id: str,
+    owner_id: str,
+    db: AsyncSession,
+) -> BusinessImagesResponse:
+    result = await db.execute(
+        select(Business).where(
+            Business.id == business_id,
+            Business.owner_id == owner_id,
+        )
+    )
+    business = result.scalar_one_or_none()
+
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    business.image_urls = None
+    await db.commit()
+
+    return BusinessImagesResponse(business_id=business.id, image_urls=[])
 
 
 async def search_businesses(
@@ -507,37 +645,38 @@ async def search_businesses(
     pincode: str | None = None,
 ) -> list[BusinessResponse]:
     lang_code = normalize_language(language)
+    user_lat, user_lon = await ensure_user_coordinates(user_id=user_id, db=db)
 
-    filters = [
-        Business.owner_id == user_id,
-    ]
+    filters = [Business.owner_id == user_id]
 
     if name:
-        filters.append(Business.business_name.op("@>")({"en": name}))
-
+        filters.append(
+            func.lower(Business.business_name["en"].astext) == name.strip().lower()
+        )
     if category:
-        filters.append(Business.category.op("@>")({"en": category}))
-
+        filters.append(
+            func.lower(Business.category["en"].astext) == category.strip().lower()
+        )
     if status:
         filters.append(Business.status == status)
-
     if village:
-        filters.append(Business.village.op("@>")({"en": village}))
-
+        filters.append(
+            func.lower(Business.village["en"].astext) == village.strip().lower()
+        )
     if district:
-        filters.append(Business.district.op("@>")({"en": district}))
-
+        filters.append(
+            func.lower(Business.district["en"].astext) == district.strip().lower()
+        )
     if city:
-        filters.append(Business.city.op("@>")({"en": city}))
-
+        filters.append(func.lower(Business.city["en"].astext) == city.strip().lower())
     if state:
-        filters.append(Business.state.op("@>")({"en": state}))
-
+        filters.append(func.lower(Business.state["en"].astext) == state.strip().lower())
     if country:
-        filters.append(Business.country.op("@>")({"en": country}))
-
+        filters.append(
+            func.lower(Business.country["en"].astext) == country.strip().lower()
+        )
     if pincode:
-        filters.append(Business.pincode == pincode)
+        filters.append(func.lower(Business.pincode) == pincode.strip().lower())
 
     if not filters:
         raise HTTPException(
@@ -546,10 +685,9 @@ async def search_businesses(
         )
 
     result = await db.execute(select(Business).where(*filters))
-
     businesses = result.scalars().all()
 
-    responses = []
+    sorted_entries: list[tuple[float, BusinessResponse]] = []
 
     for business in businesses:
         await ensure_business_language(
@@ -558,37 +696,25 @@ async def search_businesses(
             db=db,
         )
 
-        responses.append(
-            BusinessResponse(
-                id=business.id,
-                owner_id=business.owner_id,
-                business_name=(business.business_name or {}).get(lang_code, ""),
-                category=(business.category or {}).get(lang_code, ""),
-                description=(business.description or {}).get(lang_code),
-                village=(business.village or {}).get(lang_code),
-                district=(business.district or {}).get(lang_code, ""),
-                city=(business.city or {}).get(lang_code),
-                state=(business.state or {}).get(lang_code, ""),
-                country=(business.country or {}).get(lang_code, ""),
-                margin_capital=business.margin_capital,
-                pincode=business.pincode,
-                latitude=business.latitude,
-                longitude=business.longitude,
-                status=business.status,
-                created_at=business.created_at,
-                updated_at=business.updated_at,
+        distance = (
+            calculate_haversine_distance(
+                user_lat, user_lon, business.latitude, business.longitude
             )
+            if business.latitude is not None and business.longitude is not None
+            else float("inf")
         )
 
-    await db.commit()
+        sorted_entries.append((distance, _build_business_response(business, lang_code)))
 
-    return responses
+    await db.commit()
+    sorted_entries.sort(key=lambda item: item[0])
+    return [item[1] for item in sorted_entries]
 
 
 async def search_other_businesses(
     db: AsyncSession,
-    user_id: str,
     language: str,
+    user_id: str | None = None,
     name: str | None = None,
     category: str | None = None,
     status: BusinessStatus | None = None,
@@ -601,36 +727,51 @@ async def search_other_businesses(
 ) -> list[BusinessResponse]:
     lang_code = normalize_language(language)
 
-    filters = [
-        Business.owner_id != user_id,
-    ]
+    # 1. Resolve user coordinates if user_id is provided
+    user_lat: float | None = None
+    user_lon: float | None = None
+
+    if user_id:
+        try:
+            user_lat, user_lon = await ensure_user_coordinates(user_id=user_id, db=db)
+        except HTTPException:
+            user_lat, user_lon = None, None
+
+    # 2. Build query filters
+    filters = []
+
+    # Only filter out the user's businesses if user_id is given
+    if user_id:
+        filters.append(Business.owner_id != user_id)
 
     if name:
-        filters.append(Business.business_name.op("@>")({"en": name}))
-
+        filters.append(
+            func.lower(Business.business_name["en"].astext) == name.strip().lower()
+        )
     if category:
-        filters.append(Business.category.op("@>")({"en": category}))
-
+        filters.append(
+            func.lower(Business.category["en"].astext) == category.strip().lower()
+        )
     if status:
         filters.append(Business.status == status)
-
     if village:
-        filters.append(Business.village.op("@>")({"en": village}))
-
+        filters.append(
+            func.lower(Business.village["en"].astext) == village.strip().lower()
+        )
     if district:
-        filters.append(Business.district.op("@>")({"en": district}))
-
+        filters.append(
+            func.lower(Business.district["en"].astext) == district.strip().lower()
+        )
     if city:
-        filters.append(Business.city.op("@>")({"en": city}))
-
+        filters.append(func.lower(Business.city["en"].astext) == city.strip().lower())
     if state:
-        filters.append(Business.state.op("@>")({"en": state}))
-
+        filters.append(func.lower(Business.state["en"].astext) == state.strip().lower())
     if country:
-        filters.append(Business.country.op("@>")({"en": country}))
-
+        filters.append(
+            func.lower(Business.country["en"].astext) == country.strip().lower()
+        )
     if pincode:
-        filters.append(Business.pincode == pincode)
+        filters.append(func.lower(Business.pincode) == pincode.strip().lower())
 
     if not filters:
         raise HTTPException(
@@ -638,55 +779,121 @@ async def search_other_businesses(
             detail="At least one search filter is required",
         )
 
-    result = await db.execute(select(Business).where(*filters))
+    # 3. Query records
+    query = select(Business).where(*filters)
 
+    # If coordinates are missing, sort by newest creation date
+    if user_lat is None or user_lon is None:
+        query = query.order_by(Business.created_at.desc())
+
+    result = await db.execute(query)
     businesses = result.scalars().all()
 
-    responses = []
+    # 4. Translation and response building
+    if user_lat is not None and user_lon is not None:
+        sorted_entries: list[tuple[float, BusinessResponse]] = []
 
+        for business in businesses:
+            await ensure_business_language(
+                business=business,
+                target_language=lang_code,
+                db=db,
+            )
+
+            distance = (
+                calculate_haversine_distance(
+                    user_lat, user_lon, business.latitude, business.longitude
+                )
+                if business.latitude is not None and business.longitude is not None
+                else float("inf")
+            )
+
+            sorted_entries.append(
+                (distance, _build_business_response(business, lang_code))
+            )
+
+        await db.commit()
+        sorted_entries.sort(key=lambda item: item[0])
+        return [item[1] for item in sorted_entries]
+
+    # Fallback response for unauthenticated / non-localized requests
+    responses = []
     for business in businesses:
         await ensure_business_language(
             business=business,
             target_language=lang_code,
             db=db,
         )
-
-        responses.append(
-            BusinessResponse(
-                id=business.id,
-                owner_id=business.owner_id,
-                business_name=(business.business_name or {}).get(lang_code, ""),
-                category=(business.category or {}).get(lang_code, ""),
-                description=(business.description or {}).get(lang_code),
-                village=(business.village or {}).get(lang_code),
-                district=(business.district or {}).get(lang_code, ""),
-                city=(business.city or {}).get(lang_code),
-                state=(business.state or {}).get(lang_code, ""),
-                country=(business.country or {}).get(lang_code, ""),
-                margin_capital=business.margin_capital,
-                pincode=business.pincode,
-                latitude=business.latitude,
-                longitude=business.longitude,
-                status=business.status,
-                created_at=business.created_at,
-                updated_at=business.updated_at,
-            )
-        )
+        responses.append(_build_business_response(business, lang_code))
 
     await db.commit()
-
     return responses
 
 
 async def get_active_businesses(
     language: str,
     db: AsyncSession,
+    user_id: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> list[BusinessResponse]:
+    """
+    Fetches active businesses and ensures translations.
+
+    - If user_id is provided and coordinates are resolved:
+      returns businesses sorted by proximity to the user.
+    - If user_id is None, user is not found, or coordinates cannot be resolved:
+      returns businesses ordered normally by creation date (newest first).
+    """
     lang_code = normalize_language(language)
 
-    # Adjust BusinessStatus.active to match the exact active enum in BusinessStatus
+    # 1. Try to get user coordinates if user_id is supplied
+    user_lat: float | None = None
+    user_lon: float | None = None
+
+    if user_id:
+        try:
+            user_lat, user_lon = await ensure_user_coordinates(user_id=user_id, db=db)
+        except HTTPException:
+            # User profile not found, address invalid, or geocoding failed: fallback gracefully
+            user_lat, user_lon = None, None
+
+    # 2. Case A: Location is available -> Fetch all active, compute distance, sort & paginate
+    if user_lat is not None and user_lon is not None:
+        query = select(Business).where(Business.status == BusinessStatus.active)
+        result = await db.execute(query)
+        businesses = result.scalars().all()
+
+        sorted_entries: list[tuple[float, BusinessResponse]] = []
+
+        for business in businesses:
+            await ensure_business_language(
+                business=business,
+                target_language=lang_code,
+                db=db,
+            )
+
+            distance = (
+                calculate_haversine_distance(
+                    user_lat, user_lon, business.latitude, business.longitude
+                )
+                if business.latitude is not None and business.longitude is not None
+                else float("inf")
+            )
+
+            sorted_entries.append(
+                (distance, _build_business_response(business, lang_code))
+            )
+
+        await db.commit()
+
+        # Sort globally by proximity and slice
+        sorted_entries.sort(key=lambda item: item[0])
+        paginated_entries = sorted_entries[offset : offset + limit]
+
+        return [item[1] for item in paginated_entries]
+
+    # 3. Case B: Fallback (no user_id or coordinates) -> Standard DB pagination ordered by created_at
     query = (
         select(Business)
         .where(Business.status == BusinessStatus.active)
@@ -699,36 +906,54 @@ async def get_active_businesses(
     businesses = result.scalars().all()
 
     responses = []
-
     for business in businesses:
         await ensure_business_language(
             business=business,
             target_language=lang_code,
             db=db,
         )
-
-        responses.append(
-            BusinessResponse(
-                id=business.id,
-                owner_id=business.owner_id,
-                business_name=(business.business_name or {}).get(lang_code, ""),
-                category=(business.category or {}).get(lang_code, ""),
-                description=(business.description or {}).get(lang_code),
-                village=(business.village or {}).get(lang_code),
-                district=(business.district or {}).get(lang_code, ""),
-                city=(business.city or {}).get(lang_code),
-                state=(business.state or {}).get(lang_code, ""),
-                country=(business.country or {}).get(lang_code, ""),
-                margin_capital=business.margin_capital,
-                pincode=business.pincode,
-                latitude=business.latitude,
-                longitude=business.longitude,
-                status=business.status,
-                created_at=business.created_at,
-                updated_at=business.updated_at,
-            )
-        )
+        responses.append(_build_business_response(business, lang_code))
 
     await db.commit()
 
     return responses
+
+
+async def get_business_owner_contact(
+    business_id: str,
+    db: AsyncSession,
+) -> BusinessOwnerContactResponse:
+    # Query Business and join User by owner_id
+    query = (
+        select(Business, User)
+        .join(User, Business.owner_id == User.user_id)
+        .where(Business.id == business_id)
+    )
+
+    result = await db.execute(query)
+    record = result.first()
+
+    if not record:
+        # Check if the business exists without a user, or doesn't exist at all
+        business_check = await db.scalar(
+            select(Business.id).where(Business.id == business_id)
+        )
+        if not business_check:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Business not found",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Owner contact details not found",
+        )
+
+    business, owner = record
+
+    return BusinessOwnerContactResponse(
+        business_id=str(business.id),
+        owner_id=str(owner.user_id),
+        owner_name=getattr(owner, "full_name", getattr(owner, "name", None)),
+        email=getattr(owner, "email", None),
+        phone_number=getattr(owner, "phone_number", getattr(owner, "phone", None)),
+    )

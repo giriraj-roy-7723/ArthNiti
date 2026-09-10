@@ -15,7 +15,9 @@ class GovernmentOfficial(Base):
     __tablename__ = "government_officials"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, ForeignKey("users.user_id"), nullable=False)
+    user_id = Column(
+        String, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
+    )
 
     # Multilingual fields
     designation = Column(JSONB, nullable=False, default=dict)
