@@ -1,7 +1,7 @@
 import asyncio
 from fastapi import HTTPException, status
 
-from sqlalchemy import select, func
+from sqlalchemy import select, or_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -264,6 +264,15 @@ async def create_business(
     db.add(business)
 
     try:
+        all_target_languages = {"en", "bn", "hi"} - {lang_code}
+
+        for target_lang in all_target_languages:
+            await ensure_business_language(
+                business=business,
+                target_language=target_lang,
+                db=db,
+            )
+
         await db.commit()
         await db.refresh(business)
 
@@ -536,27 +545,6 @@ async def mark_business_state(
     )
 
 
-def _build_business_response(business: Business, lang_code: str) -> BusinessResponse:
-    return BusinessResponse(
-        id=business.id,
-        owner_id=business.owner_id,
-        business_name=(business.business_name or {}).get(lang_code, ""),
-        category=(business.category or {}).get(lang_code, ""),
-        description=(business.description or {}).get(lang_code),
-        village=(business.village or {}).get(lang_code),
-        district=(business.district or {}).get(lang_code, ""),
-        city=(business.city or {}).get(lang_code),
-        state=(business.state or {}).get(lang_code, ""),
-        country=(business.country or {}).get(lang_code, ""),
-        margin_capital=business.margin_capital,
-        pincode=business.pincode,
-        latitude=business.latitude,
-        longitude=business.longitude,
-        status=business.status,
-        created_at=business.created_at,
-        updated_at=business.updated_at,
-    )
-
 
 async def get_business_images(
     business_id: str,
@@ -630,6 +618,106 @@ async def clear_business_images(
     return BusinessImagesResponse(business_id=business.id, image_urls=[])
 
 
+
+def _build_business_response(business: Business, lang_code: str) -> BusinessResponse:
+    return BusinessResponse(
+        id=business.id,
+        owner_id=business.owner_id,
+        business_name=(business.business_name or {}).get(lang_code, ""),
+        category=(business.category or {}).get(lang_code, ""),
+        description=(business.description or {}).get(lang_code),
+        village=(business.village or {}).get(lang_code),
+        district=(business.district or {}).get(lang_code, ""),
+        city=(business.city or {}).get(lang_code),
+        state=(business.state or {}).get(lang_code, ""),
+        country=(business.country or {}).get(lang_code, ""),
+        margin_capital=business.margin_capital,
+        pincode=business.pincode,
+        latitude=business.latitude,
+        longitude=business.longitude,
+        status=business.status,
+        created_at=business.created_at,
+        updated_at=business.updated_at,
+    )
+
+# ===========================================================================
+# HELPER: FUZZY + MULTILINGUAL JSONB FILTER BUILDER
+# ===========================================================================
+
+def _build_multilingual_fuzzy_filter(
+    jsonb_column,
+    primary_term: str,
+    primary_lang: str,
+    fallback_term: str | None = None,
+    fallback_lang: str = "en",
+    threshold: float = 0.3,
+):
+    """
+    Builds a fuzzy filter against the requested language.
+    If a translated fallback term is provided (e.g. English translation of Bengali search),
+    it checks that against the fallback language key as well.
+    """
+    conditions = []
+
+    # 1. Primary language search (e.g., Bengali term -> ["bn"])
+    clean_primary = primary_term.strip()
+    primary_text = func.coalesce(jsonb_column[primary_lang].astext, "")
+    conditions.append(
+        or_(
+            func.similarity(func.lower(primary_text), clean_primary.lower())
+            > threshold,
+            primary_text.ilike(f"%{clean_primary}%"),
+        )
+    )
+
+    # 2. Fallback language search (e.g., Translated English term -> ["en"])
+    if fallback_term and fallback_lang != primary_lang:
+        clean_fallback = fallback_term.strip()
+        fallback_text = func.coalesce(jsonb_column[fallback_lang].astext, "")
+        conditions.append(
+            or_(
+                func.similarity(func.lower(fallback_text), clean_fallback.lower())
+                > threshold,
+                fallback_text.ilike(f"%{clean_fallback}%"),
+            )
+        )
+
+    return or_(*conditions)
+
+
+async def _resolve_search_translations(
+    lang_code: str,
+    search_terms: dict[str, str | None],
+) -> dict[str, str]:
+    """
+    Translates non-English search terms to English in a single Gemini call
+    to allow cross-language matching against untranslated database records.
+    """
+    if lang_code == "en":
+        return {}
+
+    terms_to_translate = {
+        k: v.strip() for k, v in search_terms.items() if v and v.strip()
+    }
+    if not terms_to_translate:
+        return {}
+
+    try:
+        translated = await asyncio.to_thread(
+            translate_entry,
+            entry=terms_to_translate,
+            target_language="en",
+            source_language=lang_code,
+        )
+        return translated or {}
+    except Exception:
+        # If translation service fails, proceed with primary terms only
+        return {}
+
+
+# ===========================================================================
+# 1. SEARCH BUSINESSES (USER'S OWN BUSINESSES)
+# ===========================================================================
 async def search_businesses(
     db: AsyncSession,
     user_id: str,
@@ -647,38 +735,70 @@ async def search_businesses(
     lang_code = normalize_language(language)
     user_lat, user_lon = await ensure_user_coordinates(user_id=user_id, db=db)
 
+    # Resolve fallback English translations if user searches in Bengali/Hindi
+    term_dict = {
+        "name": name,
+        "category": category,
+        "village": village,
+        "district": district,
+        "city": city,
+        "state": state,
+        "country": country,
+    }
+    en_terms = await _resolve_search_translations(
+        lang_code=lang_code, search_terms=term_dict
+    )
+
     filters = [Business.owner_id == user_id]
 
     if name:
         filters.append(
-            func.lower(Business.business_name["en"].astext) == name.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.business_name, name, lang_code, en_terms.get("name")
+            )
         )
     if category:
         filters.append(
-            func.lower(Business.category["en"].astext) == category.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.category, category, lang_code, en_terms.get("category")
+            )
         )
     if status:
         filters.append(Business.status == status)
     if village:
         filters.append(
-            func.lower(Business.village["en"].astext) == village.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.village, village, lang_code, en_terms.get("village")
+            )
         )
     if district:
         filters.append(
-            func.lower(Business.district["en"].astext) == district.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.district, district, lang_code, en_terms.get("district")
+            )
         )
     if city:
-        filters.append(func.lower(Business.city["en"].astext) == city.strip().lower())
+        filters.append(
+            _build_multilingual_fuzzy_filter(
+                Business.city, city, lang_code, en_terms.get("city")
+            )
+        )
     if state:
-        filters.append(func.lower(Business.state["en"].astext) == state.strip().lower())
+        filters.append(
+            _build_multilingual_fuzzy_filter(
+                Business.state, state, lang_code, en_terms.get("state")
+            )
+        )
     if country:
         filters.append(
-            func.lower(Business.country["en"].astext) == country.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.country, country, lang_code, en_terms.get("country")
+            )
         )
     if pincode:
-        filters.append(func.lower(Business.pincode) == pincode.strip().lower())
+        filters.append(Business.pincode.ilike(f"%{pincode.strip()}%"))
 
-    if not filters:
+    if len(filters) <= 1:
         raise HTTPException(
             status_code=400,
             detail="At least one search filter is required",
@@ -710,7 +830,9 @@ async def search_businesses(
     sorted_entries.sort(key=lambda item: item[0])
     return [item[1] for item in sorted_entries]
 
-
+# ===========================================================================
+# 2. SEARCH OTHER BUSINESSES (PUBLIC / EXPLORE SEARCH)
+# ===========================================================================
 async def search_other_businesses(
     db: AsyncSession,
     language: str,
@@ -737,59 +859,90 @@ async def search_other_businesses(
         except HTTPException:
             user_lat, user_lon = None, None
 
-    # 2. Build query filters
+    # 2. Resolve fallback English translations if user searches in Bengali/Hindi
+    term_dict = {
+        "name": name,
+        "category": category,
+        "village": village,
+        "district": district,
+        "city": city,
+        "state": state,
+        "country": country,
+    }
+    en_terms = await _resolve_search_translations(
+        lang_code=lang_code, search_terms=term_dict
+    )
+
+    # 3. Build query filters
     filters = []
 
-    # Only filter out the user's businesses if user_id is given
     if user_id:
         filters.append(Business.owner_id != user_id)
 
     if name:
         filters.append(
-            func.lower(Business.business_name["en"].astext) == name.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.business_name, name, lang_code, en_terms.get("name")
+            )
         )
     if category:
         filters.append(
-            func.lower(Business.category["en"].astext) == category.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.category, category, lang_code, en_terms.get("category")
+            )
         )
     if status:
         filters.append(Business.status == status)
     if village:
         filters.append(
-            func.lower(Business.village["en"].astext) == village.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.village, village, lang_code, en_terms.get("village")
+            )
         )
     if district:
         filters.append(
-            func.lower(Business.district["en"].astext) == district.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.district, district, lang_code, en_terms.get("district")
+            )
         )
     if city:
-        filters.append(func.lower(Business.city["en"].astext) == city.strip().lower())
+        filters.append(
+            _build_multilingual_fuzzy_filter(
+                Business.city, city, lang_code, en_terms.get("city")
+            )
+        )
     if state:
-        filters.append(func.lower(Business.state["en"].astext) == state.strip().lower())
+        filters.append(
+            _build_multilingual_fuzzy_filter(
+                Business.state, state, lang_code, en_terms.get("state")
+            )
+        )
     if country:
         filters.append(
-            func.lower(Business.country["en"].astext) == country.strip().lower()
+            _build_multilingual_fuzzy_filter(
+                Business.country, country, lang_code, en_terms.get("country")
+            )
         )
     if pincode:
-        filters.append(func.lower(Business.pincode) == pincode.strip().lower())
+        filters.append(Business.pincode.ilike(f"%{pincode.strip()}%"))
 
-    if not filters:
+    # If no functional filter was provided
+    if not filters or (len(filters) == 1 and user_id):
         raise HTTPException(
             status_code=400,
             detail="At least one search filter is required",
         )
 
-    # 3. Query records
+    # 4. Query records
     query = select(Business).where(*filters)
 
-    # If coordinates are missing, sort by newest creation date
     if user_lat is None or user_lon is None:
         query = query.order_by(Business.created_at.desc())
 
     result = await db.execute(query)
     businesses = result.scalars().all()
 
-    # 4. Translation and response building
+    # 5. Translation and response building
     if user_lat is not None and user_lon is not None:
         sorted_entries: list[tuple[float, BusinessResponse]] = []
 
@@ -816,7 +969,7 @@ async def search_other_businesses(
         sorted_entries.sort(key=lambda item: item[0])
         return [item[1] for item in sorted_entries]
 
-    # Fallback response for unauthenticated / non-localized requests
+    # Fallback for unauthenticated or non-geolocated users
     responses = []
     for business in businesses:
         await ensure_business_language(
@@ -828,6 +981,7 @@ async def search_other_businesses(
 
     await db.commit()
     return responses
+
 
 
 async def get_active_businesses(

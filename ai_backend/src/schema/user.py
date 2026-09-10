@@ -25,7 +25,7 @@ async def generate_unique_username(first_name: str, db) -> str:
 
 
 class UserRole(str, enum.Enum):
-    # user = "user"
+    user = "user"
     admin = "admin"
     enterpreneur = "enterpreneur"
     buyer = "buyer"
