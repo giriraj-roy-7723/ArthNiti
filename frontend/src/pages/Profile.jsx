@@ -26,6 +26,68 @@ import { useLanguage } from "../context/LanguageContext";
 const PROFILE_ENDPOINT = "/auth/me";
 const UPDATE_PROFILE_ENDPOINT = "/auth/update-profile";
 
+// Extracted outside to prevent unmounting inputs on state change
+const InfoItem = ({
+  icon: Icon,
+  label,
+  value,
+  fullWidth = false,
+  field,
+  editable = false,
+  isEditing = false,
+  editValue = "",
+  onEditChange,
+  saving = false,
+  displayFallback = "Not available",
+}) => (
+  <div
+    className={`rounded-xl border border-gray-800 bg-gray-950/40 p-4 ${
+      fullWidth ? "sm:col-span-2" : ""
+    }`}
+  >
+    <div className="flex items-start gap-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-800/70">
+        <Icon size={16} className="text-blue-400" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-gray-600">
+          {label}
+        </p>
+
+        {isEditing && editable ? (
+          <input
+            type="text"
+            value={editValue}
+            onChange={(event) => onEditChange?.(field, event.target.value)}
+            disabled={saving}
+            className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-white outline-none transition placeholder:text-gray-600 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+          />
+        ) : (
+          <p className="mt-1 break-words text-sm font-semibold text-gray-200">
+            {value || displayFallback}
+          </p>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+// Extracted outside to preserve element tree stability
+const ProfileSection = ({ icon: Icon, title, children }) => (
+  <section className="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/60 shadow-[0_15px_40px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+    <div className="flex items-center gap-3 border-b border-gray-800 px-6 py-5">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10">
+        <Icon size={19} className="text-blue-400" />
+      </div>
+
+      <h2 className="text-base font-bold text-white">{title}</h2>
+    </div>
+
+    <div className="p-6">{children}</div>
+  </section>
+);
+
 const Profile = () => {
   const { language } = useLanguage();
 
@@ -528,149 +590,6 @@ const Profile = () => {
     return resolvedValue || t.notAvailable;
   };
 
-  const InfoItem = ({
-    icon: Icon,
-    label,
-    value,
-    fullWidth = false,
-    field,
-    editable = false,
-  }) => (
-    <div
-      className={`rounded-xl border border-gray-800 bg-gray-950/40 p-4 ${
-        fullWidth ? "sm:col-span-2" : ""
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-800/70">
-          <Icon size={16} className="text-blue-400" />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-600">
-            {label}
-          </p>
-
-          {isEditing && editable ? (
-            <input
-              type="text"
-              value={editForm[field] || ""}
-              onChange={(event) => handleEditChange(field, event.target.value)}
-              disabled={savingProfile}
-              className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-white outline-none transition placeholder:text-gray-600 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-            />
-          ) : (
-            <p className="mt-1 break-words text-sm font-semibold text-gray-200">
-              {displayValue(value)}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  const ProfileSection = ({ icon: Icon, title, children }) => (
-    <section className="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/60 shadow-[0_15px_40px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-      <div className="flex items-center gap-3 border-b border-gray-800 px-6 py-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10">
-          <Icon size={19} className="text-blue-400" />
-        </div>
-
-        <h2 className="text-base font-bold text-white">{title}</h2>
-      </div>
-
-      <div className="p-6">{children}</div>
-    </section>
-  );
-
-  const GovernmentOfficialSection = () => {
-    const info = profile?.role_info || {};
-
-    return (
-      <ProfileSection icon={Landmark} title={t.roleInformation}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InfoItem
-            icon={BriefcaseBusiness}
-            label={t.designation}
-            value={info.designation}
-          />
-          <InfoItem
-            icon={Building2}
-            label={t.agencyName}
-            value={info.agency_name}
-          />
-          <InfoItem
-            icon={MapPin}
-            label={t.agencyAddress}
-            value={info.agency_address}
-            fullWidth
-          />
-          <InfoItem
-            icon={MapPin}
-            label={t.agencyCity}
-            value={info.agency_city}
-          />
-          <InfoItem
-            icon={MapPin}
-            label={t.agencyState}
-            value={info.agency_state}
-          />
-          <InfoItem
-            icon={Globe2}
-            label={t.agencyCountry}
-            value={info.agency_country}
-          />
-          <InfoItem
-            icon={Building2}
-            label={t.agencyType}
-            value={info.agency_type}
-          />
-          <InfoItem
-            icon={Hash}
-            label={t.agencyPincode}
-            value={info.agency_pincode}
-          />
-        </div>
-      </ProfileSection>
-    );
-  };
-
-  const EntrepreneurSection = () => (
-    <ProfileSection icon={BriefcaseBusiness} title={t.roleInformation}>
-      <div className="rounded-2xl border border-blue-500/10 bg-blue-500/5 p-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
-            <BriefcaseBusiness size={22} className="text-blue-400" />
-          </div>
-          <div>
-            <h3 className="font-bold text-white">{t.entrepreneur}</h3>
-            <p className="mt-2 text-sm leading-6 text-gray-400">
-              {t.entrepreneurDescription}
-            </p>
-          </div>
-        </div>
-      </div>
-    </ProfileSection>
-  );
-
-  const BuyerSection = () => (
-    <ProfileSection icon={ShoppingBag} title={t.roleInformation}>
-      <div className="rounded-2xl border border-purple-500/10 bg-purple-500/5 p-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-500/10">
-            <ShoppingBag size={22} className="text-purple-400" />
-          </div>
-          <div>
-            <h3 className="font-bold text-white">{t.buyer}</h3>
-            <p className="mt-2 text-sm leading-6 text-gray-400">
-              {t.buyerDescription}
-            </p>
-          </div>
-        </div>
-      </div>
-    </ProfileSection>
-  );
-
   if (loading) {
     return (
       <div className="relative min-h-screen overflow-hidden bg-gray-950 text-white">
@@ -736,6 +655,7 @@ const Profile = () => {
   const email = getLocalizedValue(profile.email);
   const phone = getLocalizedValue(profile.phone || profile.phone_number);
   const profileImage = getProfileImage(profile);
+  const roleInfo = profile?.role_info || {};
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-950 text-white">
@@ -907,24 +827,44 @@ const Profile = () => {
               <InfoItem
                 icon={User}
                 label={t.firstName}
-                value={profile.first_name}
+                value={getLocalizedValue(profile.first_name)}
                 field="first_name"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.first_name}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
               <InfoItem
                 icon={User}
                 label={t.lastName}
-                value={profile.last_name}
+                value={getLocalizedValue(profile.last_name)}
                 field="last_name"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.last_name}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
-              <InfoItem icon={Mail} label={t.email} value={profile.email} />
+              <InfoItem
+                icon={Mail}
+                label={t.email}
+                value={getLocalizedValue(profile.email)}
+                displayFallback={t.notAvailable}
+              />
               <InfoItem
                 icon={Phone}
                 label={t.phone}
-                value={profile.phone || profile.phone_number}
+                value={getLocalizedValue(profile.phone || profile.phone_number)}
                 field="phone_number"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.phone_number}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
             </div>
           </ProfileSection>
@@ -934,65 +874,182 @@ const Profile = () => {
               <InfoItem
                 icon={MapPin}
                 label={t.address}
-                value={profile.address}
+                value={getLocalizedValue(profile.address)}
                 field="address"
                 editable
                 fullWidth
+                isEditing={isEditing}
+                editValue={editForm.address}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
               <InfoItem
                 icon={MapPin}
                 label={t.village}
-                value={profile.village}
+                value={getLocalizedValue(profile.village)}
                 field="village"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.village}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
               <InfoItem
                 icon={MapPin}
                 label={t.district}
-                value={profile.district}
+                value={getLocalizedValue(profile.district)}
                 field="district"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.district}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
               <InfoItem
                 icon={MapPin}
                 label={t.city}
-                value={profile.city}
+                value={getLocalizedValue(profile.city)}
                 field="city"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.city}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
               <InfoItem
                 icon={MapPin}
                 label={t.state}
-                value={profile.state}
+                value={getLocalizedValue(profile.state)}
                 field="state"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.state}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
               <InfoItem
                 icon={Globe2}
                 label={t.country}
-                value={profile.country}
+                value={getLocalizedValue(profile.country)}
                 field="country"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.country}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
               <InfoItem
                 icon={Hash}
                 label={t.pincode}
-                value={profile.pincode}
+                value={getLocalizedValue(profile.pincode)}
                 field="pincode"
                 editable
+                isEditing={isEditing}
+                editValue={editForm.pincode}
+                onEditChange={handleEditChange}
+                saving={savingProfile}
+                displayFallback={t.notAvailable}
               />
             </div>
           </ProfileSection>
 
           {(role === "government" || role === "government_official") && (
-            <GovernmentOfficialSection />
+            <ProfileSection icon={Landmark} title={t.roleInformation}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InfoItem
+                  icon={BriefcaseBusiness}
+                  label={t.designation}
+                  value={getLocalizedValue(roleInfo.designation)}
+                  displayFallback={t.notAvailable}
+                />
+                <InfoItem
+                  icon={Building2}
+                  label={t.agencyName}
+                  value={getLocalizedValue(roleInfo.agency_name)}
+                  displayFallback={t.notAvailable}
+                />
+                <InfoItem
+                  icon={MapPin}
+                  label={t.agencyAddress}
+                  value={getLocalizedValue(roleInfo.agency_address)}
+                  fullWidth
+                  displayFallback={t.notAvailable}
+                />
+                <InfoItem
+                  icon={MapPin}
+                  label={t.agencyCity}
+                  value={getLocalizedValue(roleInfo.agency_city)}
+                  displayFallback={t.notAvailable}
+                />
+                <InfoItem
+                  icon={MapPin}
+                  label={t.agencyState}
+                  value={getLocalizedValue(roleInfo.agency_state)}
+                  displayFallback={t.notAvailable}
+                />
+                <InfoItem
+                  icon={Globe2}
+                  label={t.agencyCountry}
+                  value={getLocalizedValue(roleInfo.agency_country)}
+                  displayFallback={t.notAvailable}
+                />
+                <InfoItem
+                  icon={Building2}
+                  label={t.agencyType}
+                  value={getLocalizedValue(roleInfo.agency_type)}
+                  displayFallback={t.notAvailable}
+                />
+                <InfoItem
+                  icon={Hash}
+                  label={t.agencyPincode}
+                  value={getLocalizedValue(roleInfo.agency_pincode)}
+                  displayFallback={t.notAvailable}
+                />
+              </div>
+            </ProfileSection>
           )}
 
           {(role === "entrepreneur" || role === "enterpreneur") && (
-            <EntrepreneurSection />
+            <ProfileSection icon={BriefcaseBusiness} title={t.roleInformation}>
+              <div className="rounded-2xl border border-blue-500/10 bg-blue-500/5 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
+                    <BriefcaseBusiness size={22} className="text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white">{t.entrepreneur}</h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      {t.entrepreneurDescription}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </ProfileSection>
           )}
 
-          {role === "buyer" && <BuyerSection />}
+          {role === "buyer" && (
+            <ProfileSection icon={ShoppingBag} title={t.roleInformation}>
+              <div className="rounded-2xl border border-purple-500/10 bg-purple-500/5 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-500/10">
+                    <ShoppingBag size={22} className="text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white">{t.buyer}</h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      {t.buyerDescription}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </ProfileSection>
+          )}
 
           {role !== "government" &&
             role !== "government_official" &&
