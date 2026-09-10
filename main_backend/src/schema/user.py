@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Enum
+from sqlalchemy import Column, String, DateTime, Enum, Float
 from sqlalchemy.dialects.postgresql import JSONB
 from src.config.database import Base
 from datetime import datetime, timezone
@@ -57,5 +57,8 @@ class User(Base):
     
     # Non-translated address field
     pincode = Column(String, nullable=False)
+
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.database import get_db
@@ -10,10 +10,14 @@ from src.controllers.business_controller import (
     search_businesses,
     search_other_businesses,
     get_active_businesses,
-    get_business_owner_contact
+    get_business_owner_contact,
 )
 from src.middlewares.auth import verify_token
-from src.models.business_request import BusinessCreateRequest, BusinessResponse, BusinessOwnerContactResponse
+from src.models.business_request import (
+    BusinessCreateRequest,
+    BusinessResponse,
+    BusinessOwnerContactResponse,
+)
 from src.schema.business import BusinessStatus
 
 router = APIRouter()
@@ -107,6 +111,19 @@ async def search_businesses_route(
 # OTHER BUSINESSES
 # =========================================================
 
+# Optional token resolver helper:
+async def get_optional_user_id(
+    authorization: str | None = Header(default=None),
+) -> str | None:
+    if not authorization:
+        return None
+    try:
+        # If your verify_token accepts the raw header string:
+        return await verify_token(authorization)
+    except HTTPException:
+        # Invalid/expired token falls back to anonymous
+        return None
+
 
 @router.get(
     "/search/others",
@@ -124,7 +141,7 @@ async def search_other_businesses_route(
     state: str | None = None,
     country: str | None = None,
     pincode: str | None = None,
-    user_id: str = Depends(verify_token),
+    user_id: str | None = Depends(get_optional_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     return await search_other_businesses(
@@ -138,10 +155,9 @@ async def search_other_businesses_route(
         city=city,
         state=state,
         country=country,
-        user_id= user_id,
         pincode=pincode,
+        user_id=user_id,
     )
-
 
 
 @router.get(
@@ -150,17 +166,16 @@ async def search_other_businesses_route(
     summary="Get active businesses for public directory",
 )
 async def list_active_businesses(
+    user_id: str | None = None,
     language: str = Query("en", description="Target language code (e.g., en, hi, bn)"),
     limit: int = Query(20, ge=1, le=100, description="Number of items to fetch"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: AsyncSession = Depends(get_db),
 ):
     return await get_active_businesses(
-        language=language,
-        db=db,
-        limit=limit,
-        offset=offset,
+        language=language, db=db, limit=limit, offset=offset, user_id=user_id
     )
+
 
 # =========================================================
 # UPDATE BUSINESS STATUS
@@ -188,6 +203,7 @@ async def mark_business_state_route(
         language=language,
         db=db,
     )
+
 
 # =========================================================
 # GET BUSINESS OWNER CONTACT DETAILS
@@ -234,7 +250,3 @@ async def get_business_route(
         owner_id=user_id,
         db=db,
     )
-
-
-
-
