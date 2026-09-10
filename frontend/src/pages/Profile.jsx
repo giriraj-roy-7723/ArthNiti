@@ -17,18 +17,14 @@ import {
   Hash,
   Pencil,
   Sparkles,
+  X,
+  Check,
 } from "lucide-react";
-
 import { api } from "../utils/api";
 import { useLanguage } from "../context/LanguageContext";
 
 const PROFILE_ENDPOINT = "/auth/me";
-
-
-
-
-
-
+const UPDATE_PROFILE_ENDPOINT = "/auth/update-profile";
 
 const Profile = () => {
   const { language } = useLanguage();
@@ -37,6 +33,23 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
+
+  const [editForm, setEditForm] = useState({
+    first_name: "",
+    last_name: "",
+    phone_number: "",
+    address: "",
+    village: "",
+    district: "",
+    city: "",
+    state: "",
+    country: "",
+    pincode: "",
+  });
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState("");
@@ -48,12 +61,10 @@ const Profile = () => {
       loading: "Loading your profile...",
       unableToLoad: "Unable to load profile",
       tryAgain: "Try Again",
-
       personalInformation: "Personal Information",
       contactInformation: "Contact Information",
       addressInformation: "Address Information",
       roleInformation: "Role Information",
-
       firstName: "First Name",
       lastName: "Last Name",
       email: "Email",
@@ -65,17 +76,14 @@ const Profile = () => {
       state: "State",
       country: "Country",
       pincode: "Pincode",
-
       entrepreneur: "Entrepreneur",
       buyer: "Buyer",
       government: "Government Official",
       unknownRole: "Profile",
-
       entrepreneurDescription:
         "Your entrepreneur-specific information will appear here.",
       buyerDescription: "Your buyer-specific information will appear here.",
       governmentDescription: "Your government official information.",
-
       designation: "Designation",
       agencyName: "Agency Name",
       agencyAddress: "Agency Address",
@@ -84,24 +92,29 @@ const Profile = () => {
       agencyCountry: "Agency Country",
       agencyType: "Agency Type",
       agencyPincode: "Agency Pincode",
-
       notAvailable: "Not available",
       profileUpdated: "Profile information",
       poweredBy: "AI-powered business platform",
+      editProfile: "Edit Profile",
+      saveChanges: "Save Changes",
+      saving: "Saving...",
+      cancel: "Cancel",
+      profileUpdatedSuccess: "Profile updated successfully.",
+      profileUpdateFailed: "Failed to update your profile. Please try again.",
+      imageUploadFailed: "Failed to upload image.",
+      selectImage: "Please select an image file.",
+      uploading: "Uploading...",
     },
-
     hindi: {
       profile: "प्रोफ़ाइल",
       subtitle: "अपनी व्यक्तिगत जानकारी और प्रोफ़ाइल विवरण प्रबंधित करें।",
       loading: "आपकी प्रोफ़ाइल लोड हो रही है...",
       unableToLoad: "प्रोफ़ाइल लोड नहीं हो सकी",
       tryAgain: "पुनः प्रयास करें",
-
       personalInformation: "व्यक्तिगत जानकारी",
       contactInformation: "संपर्क जानकारी",
       addressInformation: "पते की जानकारी",
       roleInformation: "भूमिका की जानकारी",
-
       firstName: "पहला नाम",
       lastName: "अंतिम नाम",
       email: "ईमेल",
@@ -113,16 +126,13 @@ const Profile = () => {
       state: "राज्य",
       country: "देश",
       pincode: "पिनकोड",
-
       entrepreneur: "उद्यमी",
       buyer: "खरीदार",
       government: "सरकारी अधिकारी",
       unknownRole: "प्रोफ़ाइल",
-
       entrepreneurDescription: "आपकी उद्यमी संबंधी जानकारी यहाँ दिखाई देगी।",
       buyerDescription: "आपकी खरीदार संबंधी जानकारी यहाँ दिखाई देगी।",
       governmentDescription: "आपकी सरकारी अधिकारी संबंधी जानकारी।",
-
       designation: "पद",
       agencyName: "एजेंसी का नाम",
       agencyAddress: "एजेंसी का पता",
@@ -131,24 +141,30 @@ const Profile = () => {
       agencyCountry: "एजेंसी का देश",
       agencyType: "एजेंसी का प्रकार",
       agencyPincode: "एजेंसी पिनकोड",
-
       notAvailable: "उपलब्ध नहीं",
       profileUpdated: "प्रोफ़ाइल जानकारी",
       poweredBy: "AI-संचालित बिज़नेस प्लेटफ़ॉर्म",
+      editProfile: "प्रोफ़ाइल संपादित करें",
+      saveChanges: "परिवर्तन सहेजें",
+      saving: "सहेजा जा रहा है...",
+      cancel: "रद्द करें",
+      profileUpdatedSuccess: "प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई।",
+      profileUpdateFailed:
+        "प्रोफ़ाइल अपडेट नहीं हो सकी। कृपया पुनः प्रयास करें।",
+      imageUploadFailed: "प्रोफ़ाइल चित्र अपलोड नहीं हो सका।",
+      selectImage: "कृपया एक चित्र फ़ाइल चुनें।",
+      uploading: "अपलोड हो रहा है...",
     },
-
     bengali: {
       profile: "প্রোফাইল",
       subtitle: "আপনার ব্যক্তিগত তথ্য এবং প্রোফাইলের বিবরণ পরিচালনা করুন।",
       loading: "আপনার প্রোফাইল লোড হচ্ছে...",
       unableToLoad: "প্রোফাইল লোড করা যায়নি",
       tryAgain: "আবার চেষ্টা করুন",
-
       personalInformation: "ব্যক্তিগত তথ্য",
       contactInformation: "যোগাযোগের তথ্য",
       addressInformation: "ঠিকানার তথ্য",
       roleInformation: "ভূমিকার তথ্য",
-
       firstName: "নাম",
       lastName: "পদবি",
       email: "ইমেল",
@@ -160,17 +176,14 @@ const Profile = () => {
       state: "রাজ্য",
       country: "দেশ",
       pincode: "পিনকোড",
-
       entrepreneur: "উদ্যোক্তা",
       buyer: "ক্রেতা",
       government: "সরকারি কর্মকর্তা",
       unknownRole: "প্রোফাইল",
-
       entrepreneurDescription:
         "আপনার উদ্যোক্তা সম্পর্কিত তথ্য এখানে প্রদর্শিত হবে।",
       buyerDescription: "আপনার ক্রেতা সম্পর্কিত তথ্য এখানে প্রদর্শিত হবে।",
       governmentDescription: "আপনার সরকারি কর্মকর্তা সম্পর্কিত তথ্য।",
-
       designation: "পদবি",
       agencyName: "এজেন্সির নাম",
       agencyAddress: "এজেন্সির ঠিকানা",
@@ -179,27 +192,83 @@ const Profile = () => {
       agencyCountry: "এজেন্সির দেশ",
       agencyType: "এজেন্সির ধরন",
       agencyPincode: "এজেন্সির পিনকোড",
-
       notAvailable: "উপলব্ধ নয়",
       profileUpdated: "প্রোফাইলের তথ্য",
       poweredBy: "AI-চালিত বিজনেস প্ল্যাটফর্ম",
+      editProfile: "প্রোফাইল সম্পাদনা করুন",
+      saveChanges: "পরিবর্তন সংরক্ষণ করুন",
+      saving: "সংরক্ষণ করা হচ্ছে...",
+      cancel: "বাতিল",
+      profileUpdatedSuccess: "প্রোফাইল সফলভাবে আপডেট হয়েছে।",
+      profileUpdateFailed:
+        "প্রোফাইল আপডেট করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+      imageUploadFailed: "প্রোফাইল ছবি আপলোড করা যায়নি।",
+      selectImage: "অনুগ্রহ করে একটি ছবি ফাইল নির্বাচন করুন।",
+      uploading: "আপলোড হচ্ছে...",
     },
   };
 
   const t = translations[language] || translations.english;
 
+  // Handles backend values such as:
+  // "West Bengal"
+  // { en: "West Bengal", hi: "पश्चिम बंगाल", bn: "পশ্চিমবঙ্গ" }
+  // { english: "...", hindi: "...", bengali: "..." }
+  const getLocalizedValue = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return "";
+    }
+
+    if (typeof value === "string" || typeof value === "number") {
+      return String(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => getLocalizedValue(item))
+        .filter(Boolean)
+        .join(", ");
+    }
+
+    if (typeof value === "object") {
+      const languageKeys = {
+        english: ["english", "en"],
+        hindi: ["hindi", "hi"],
+        bengali: ["bengali", "bn"],
+      };
+
+      const keys = languageKeys[language] || languageKeys.english;
+
+      for (const key of keys) {
+        if (
+          value[key] !== undefined &&
+          value[key] !== null &&
+          value[key] !== ""
+        ) {
+          return getLocalizedValue(value[key]);
+        }
+      }
+
+      for (const key of ["en", "english", "hi", "hindi", "bn", "bengali"]) {
+        if (
+          value[key] !== undefined &&
+          value[key] !== null &&
+          value[key] !== ""
+        ) {
+          return getLocalizedValue(value[key]);
+        }
+      }
+
+      return "";
+    }
+
+    return String(value);
+  };
+
   // =========================================================
   // Dummy role-specific functions
   // =========================================================
 
-  /**
-   * Entrepreneur-specific data.
-   *
-   * Later you can replace this with something like:
-   *
-   * const response = await api.get("/entrepreneurs/me");
-   * return response.data;
-   */
   const fetchEntrepreneurDetails = async () => {
     return {
       available: false,
@@ -207,14 +276,6 @@ const Profile = () => {
     };
   };
 
-  /**
-   * Buyer-specific data.
-   *
-   * Later you can replace this with something like:
-   *
-   * const response = await api.get("/buyers/me");
-   * return response.data;
-   */
   const fetchBuyerDetails = async () => {
     return {
       available: false,
@@ -223,70 +284,184 @@ const Profile = () => {
   };
 
   // =========================================================
-  // Fetch profile
+  // Edit profile helpers
   // =========================================================
+
+  const startEditing = () => {
+    setEditForm({
+      first_name: getLocalizedValue(profile?.first_name),
+      last_name: getLocalizedValue(profile?.last_name),
+      phone_number: getLocalizedValue(profile?.phone || profile?.phone_number),
+      address: getLocalizedValue(profile?.address),
+      village: getLocalizedValue(profile?.village),
+      district: getLocalizedValue(profile?.district),
+      city: getLocalizedValue(profile?.city),
+      state: getLocalizedValue(profile?.state),
+      country: getLocalizedValue(profile?.country),
+      pincode: getLocalizedValue(profile?.pincode),
+    });
+
+    setSaveError("");
+    setSaveSuccess("");
+    setImageError("");
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setSaveError("");
+    setSaveSuccess("");
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // =========================================================
+  // Save profile
+  // =========================================================
+
+  const saveProfile = async () => {
+    try {
+      setSavingProfile(true);
+      setSaveError("");
+      setSaveSuccess("");
+
+      const response = await api.patch(UPDATE_PROFILE_ENDPOINT, editForm, {
+        params: {
+          language: language || "english",
+        },
+      });
+
+      const updatedProfile = response.data || {};
+
+      setProfile((prev) => ({
+        ...prev,
+        ...(typeof updatedProfile === "object" ? updatedProfile : {}),
+        first_name: updatedProfile.first_name ?? editForm.first_name,
+        last_name: updatedProfile.last_name ?? editForm.last_name,
+        phone:
+          updatedProfile.phone ??
+          updatedProfile.phone_number ??
+          editForm.phone_number,
+        phone_number:
+          updatedProfile.phone_number ??
+          updatedProfile.phone ??
+          editForm.phone_number,
+        address: updatedProfile.address ?? editForm.address,
+        village: updatedProfile.village ?? editForm.village,
+        district: updatedProfile.district ?? editForm.district,
+        city: updatedProfile.city ?? editForm.city,
+        state: updatedProfile.state ?? editForm.state,
+        country: updatedProfile.country ?? editForm.country,
+        pincode: updatedProfile.pincode ?? editForm.pincode,
+      }));
+
+      setIsEditing(false);
+      setSaveSuccess(t.profileUpdatedSuccess);
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+
+      setSaveError(
+        getLocalizedValue(err.response?.data?.detail) || t.profileUpdateFailed,
+      );
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // =========================================================
+  // Profile image upload
+  // =========================================================
+
   const handleImageUpload = async (event) => {
-      const file = event.target.files?.[0];
+    const file = event.target.files?.[0];
 
-      if (!file) return;
+    if (!file) {
+      return;
+    }
 
-      setImageError("");
-      setUploadingImage(true);
+    setImageError("");
+    setSaveError("");
+    setSaveSuccess("");
+    setUploadingImage(true);
 
-      try {
-        // Only allow images
-        if (!file.type.startsWith("image/")) {
-          throw new Error("Please select an image file.");
-        }
+    try {
+      if (!file.type.startsWith("image/")) {
+        throw new Error(t.selectImage);
+      }
 
-        // Create a unique file name
-        const fileExtension = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2)}.${fileExtension}`;
+      const fileExtension = file.name.split(".").pop();
 
-        // Upload image to Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from("profile-images")
-          .upload(fileName, file);
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}.${fileExtension}`;
 
-        if (uploadError) {
-          throw uploadError;
-        }
+      const { error: uploadError } = await supabase.storage
+        .from("profile-images")
+        .upload(fileName, file);
 
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-          .from("profile-images")
-          .getPublicUrl(fileName);
+      if (uploadError) {
+        throw uploadError;
+      }
 
-        const imageUrl = publicUrlData.publicUrl;
+      const { data: publicUrlData } = supabase.storage
+        .from("profile-images")
+        .getPublicUrl(fileName);
 
-        // Update profile_pic in users table through your backend
-        await api.patch("/auth/me", {
+      const imageUrl = publicUrlData?.publicUrl;
+
+      if (!imageUrl) {
+        throw new Error(t.imageUploadFailed);
+      }
+
+      // Store the Supabase public URL in the backend users.profile_pic.
+      const response = await api.patch(
+        UPDATE_PROFILE_ENDPOINT,
+        {
           profile_pic: imageUrl,
-        });
+        },
+        {
+          params: {
+            language: language || "english",
+          },
+        },
+      );
 
-        // Update displayed profile immediately
-        setProfile((prev) => ({
-          ...prev,
-          profile_pic: imageUrl,
-          profile_image: imageUrl,
-        }));
-      } catch (err) {
-        console.error("Image upload failed:", err);
+      const updatedProfile = response.data || {};
 
-        setImageError(
-          err.response?.data?.detail ||
-            err.message ||
-            "Failed to upload image."
-        );
-      } finally {
-        setUploadingImage(false);
+      setProfile((prev) => ({
+        ...prev,
+        ...(typeof updatedProfile === "object" ? updatedProfile : {}),
+        profile_pic: imageUrl,
+        profile_image: imageUrl,
+      }));
 
-        // Allow selecting the same image again
+      setSaveSuccess(t.profileUpdatedSuccess);
+    } catch (err) {
+      console.error("Image upload failed:", err);
+
+      setImageError(
+        getLocalizedValue(err.response?.data?.detail) ||
+          err.message ||
+          t.imageUploadFailed,
+      );
+    } finally {
+      setUploadingImage(false);
+
+      if (event.target) {
         event.target.value = "";
       }
-    };
+    }
+  };
+
+  // =========================================================
+  // Fetch profile
+  // =========================================================
+
   const fetchProfile = async () => {
     try {
       setLoading(true);
@@ -298,25 +473,19 @@ const Profile = () => {
         },
       });
 
-      const profileData = response.data;
+      const profileData = response.data || {};
 
-      // -------------------------------------------------------
-      // Fetch additional role-specific data
-      // -------------------------------------------------------
-
-      const role = String(profileData.role || "")
+      const role = getLocalizedValue(profileData.role)
         .toLowerCase()
         .replace(/[\s-]/g, "_");
 
       if (role === "entrepreneur" || role === "enterpreneur") {
         const entrepreneurDetails = await fetchEntrepreneurDetails();
-
         profileData.role_specific = entrepreneurDetails.data;
       }
 
       if (role === "buyer") {
         const buyerDetails = await fetchBuyerDetails();
-
         profileData.role_specific = buyerDetails.data;
       }
 
@@ -324,7 +493,7 @@ const Profile = () => {
     } catch (err) {
       console.error("Failed to fetch profile:", err);
 
-      setError(err.response?.data?.detail || "Unable to load your profile.");
+      setError(getLocalizedValue(err.response?.data?.detail) || t.unableToLoad);
     } finally {
       setLoading(false);
     }
@@ -343,7 +512,7 @@ const Profile = () => {
       return "unknown";
     }
 
-    return String(profile.role).toLowerCase().replace(/[\s-]/g, "_");
+    return getLocalizedValue(profile.role).toLowerCase().replace(/[\s-]/g, "_");
   };
 
   const getRoleLabel = () => {
@@ -361,7 +530,7 @@ const Profile = () => {
       return t.government;
     }
 
-    return profile?.role || t.unknownRole;
+    return getLocalizedValue(profile?.role) || t.unknownRole;
   };
 
   const getRoleIcon = () => {
@@ -383,8 +552,8 @@ const Profile = () => {
   };
 
   const getInitials = () => {
-    const first = profile?.first_name || "";
-    const last = profile?.last_name || "";
+    const first = getLocalizedValue(profile?.first_name);
+    const last = getLocalizedValue(profile?.last_name);
 
     const initials = `${first.charAt(0)}${last.charAt(0)}`;
 
@@ -392,18 +561,27 @@ const Profile = () => {
   };
 
   const displayValue = (value) => {
-    if (value === null || value === undefined || value === "") {
+    const resolvedValue = getLocalizedValue(value);
+
+    if (!resolvedValue) {
       return t.notAvailable;
     }
 
-    return value;
+    return resolvedValue;
   };
 
   // =========================================================
   // Reusable information item
   // =========================================================
 
-  const InfoItem = ({ icon: Icon, label, value, fullWidth = false }) => (
+  const InfoItem = ({
+    icon: Icon,
+    label,
+    value,
+    fullWidth = false,
+    field,
+    editable = false,
+  }) => (
     <div
       className={`rounded-xl border border-gray-800 bg-gray-950/40 p-4 ${
         fullWidth ? "sm:col-span-2" : ""
@@ -419,9 +597,19 @@ const Profile = () => {
             {label}
           </p>
 
-          <p className="mt-1 break-words text-sm font-semibold text-gray-200">
-            {displayValue(value)}
-          </p>
+          {isEditing && editable ? (
+            <input
+              type="text"
+              value={editForm[field] || ""}
+              onChange={(e) => handleEditChange(field, e.target.value)}
+              disabled={savingProfile}
+              className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-white outline-none transition placeholder:text-gray-600 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          ) : (
+            <p className="mt-1 break-words text-sm font-semibold text-gray-200">
+              {displayValue(value)}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -630,25 +818,22 @@ const Profile = () => {
   const RoleIcon = getRoleIcon();
   const role = getRoleKey();
 
+  const firstName = getLocalizedValue(profile.first_name);
+  const lastName = getLocalizedValue(profile.last_name);
+  const email = getLocalizedValue(profile.email);
+  const phone = getLocalizedValue(profile.phone || profile.phone_number);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-950 text-white">
-      {/* =====================================================
-          Background
-          ===================================================== */}
-
+      {/* Background */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
-
         <div className="absolute -left-40 top-1/3 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
-
         <div className="absolute -bottom-40 right-1/3 h-96 w-96 rounded-full bg-purple-600/5 blur-3xl" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* =================================================
-            Header
-            ================================================= */}
-
+        {/* Header */}
         <div className="mb-8">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-blue-400">
             <Sparkles size={16} />
@@ -666,73 +851,121 @@ const Profile = () => {
               </p>
             </div>
 
-            {/* Future edit button */}
-            <button
-              type="button"
-              disabled
-              className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-gray-800 bg-gray-900/70 px-5 py-3 text-sm font-bold text-gray-600"
-            >
-              <Pencil size={16} />
-              Edit Profile
-            </button>
+            {!isEditing ? (
+              <button
+                type="button"
+                onClick={startEditing}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 bg-gray-900/80 px-5 py-3 text-sm font-bold text-white transition hover:border-blue-500/40 hover:bg-gray-800"
+              >
+                <Pencil size={16} />
+                {t.editProfile}
+              </button>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={cancelEditing}
+                  disabled={savingProfile}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 bg-gray-900/80 px-5 py-3 text-sm font-bold text-gray-300 transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <X size={16} />
+                  {t.cancel}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={saveProfile}
+                  disabled={savingProfile}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingProfile ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Check size={16} />
+                  )}
+
+                  {savingProfile ? t.saving : t.saveChanges}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* =================================================
-            Profile Hero
-            ================================================= */}
+        {/* Messages */}
+        {saveError && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+            <AlertCircle size={17} />
+            <span>{saveError}</span>
+          </div>
+        )}
 
+        {saveSuccess && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3 text-sm text-green-400">
+            <ShieldCheck size={17} />
+            <span>{saveSuccess}</span>
+          </div>
+        )}
+
+        {imageError && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+            <AlertCircle size={17} />
+            <span>{imageError}</span>
+          </div>
+        )}
+
+        {/* Profile Hero */}
         <div className="mb-6 overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/70 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl">
           <div className="relative overflow-hidden p-6 sm:p-8">
-            {/* Glow */}
             <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-blue-600/10 blur-3xl" />
 
             <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
               {/* Profile image */}
-                          {/* Profile image */}
-            <div className="relative shrink-0">
+              <div className="relative shrink-0">
+                {profile.profile_image ? (
+                  <img
+                    src={profile.profile_image}
+                    alt={`${firstName} ${lastName}`}
+                    className="h-24 w-24 rounded-2xl border border-gray-700 object-cover shadow-xl sm:h-28 sm:w-28"
+                  />
+                ) : (
+                  <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-2xl font-extrabold text-blue-400 shadow-xl sm:h-28 sm:w-28 sm:text-3xl">
+                    {getInitials()}
+                  </div>
+                )}
 
-              {profile.profile_image || profile.profile_pic ? (
-                <img
-                  src={profile.profile_image || profile.profile_pic}
-                  alt={`${profile.first_name || ""} ${
-                    profile.last_name || ""
+                {/* Upload button */}
+                <label
+                  htmlFor="profile-image-upload"
+                  className={`absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border border-gray-700 bg-gray-900 text-gray-300 shadow-lg transition ${
+                    uploadingImage
+                      ? "cursor-not-allowed opacity-60"
+                      : "cursor-pointer hover:bg-gray-800 hover:text-white"
                   }`}
-                  className="h-24 w-24 rounded-2xl border border-gray-700 object-cover shadow-xl sm:h-28 sm:w-28"
+                >
+                  {uploadingImage ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Pencil size={15} />
+                  )}
+                </label>
+
+                <input
+                  id="profile-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  className="hidden"
                 />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-2xl font-extrabold text-blue-400 shadow-xl sm:h-28 sm:w-28 sm:text-3xl">
-                  {getInitials()}
-                </div>
-              )}
-
-              {/* Upload button */}
-              <label
-                htmlFor="profile-image-upload"
-                className="absolute -bottom-2 -right-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-gray-700 bg-gray-900 text-gray-300 shadow-lg transition hover:bg-gray-800 hover:text-white"
-              >
-                <Pencil size={15} />
-              </label>
-
-              <input
-                id="profile-image-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={uploadingImage}
-                className="hidden"
-              />
-
-            </div>
+              </div>
 
               {/* Main identity */}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="break-words text-2xl font-extrabold text-white sm:text-3xl">
-                      {[profile.first_name, profile.last_name]
-                        .filter(Boolean)
-                        .join(" ") || "User"}
+                      {[firstName, lastName].filter(Boolean).join(" ") ||
+                        "User"}
                     </h2>
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -748,17 +981,13 @@ const Profile = () => {
                   <div className="flex min-w-0 items-center gap-2 text-gray-400">
                     <Mail size={15} className="shrink-0 text-gray-600" />
 
-                    <span className="truncate">
-                      {displayValue(profile.email)}
-                    </span>
+                    <span className="truncate">{displayValue(email)}</span>
                   </div>
 
                   <div className="flex min-w-0 items-center gap-2 text-gray-400">
                     <Phone size={15} className="shrink-0 text-gray-600" />
 
-                    <span className="truncate">
-                      {displayValue(profile.phone)}
-                    </span>
+                    <span className="truncate">{displayValue(phone)}</span>
                   </div>
                 </div>
               </div>
@@ -766,10 +995,7 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* =================================================
-            Personal Information
-            ================================================= */}
-
+        {/* Personal Information */}
         <div className="space-y-6">
           <ProfileSection icon={User} title={t.personalInformation}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -777,30 +1003,39 @@ const Profile = () => {
                 icon={User}
                 label={t.firstName}
                 value={profile.first_name}
+                field="first_name"
+                editable
               />
 
               <InfoItem
                 icon={User}
                 label={t.lastName}
                 value={profile.last_name}
+                field="last_name"
+                editable
               />
 
               <InfoItem icon={Mail} label={t.email} value={profile.email} />
 
-              <InfoItem icon={Phone} label={t.phone} value={profile.phone} />
+              <InfoItem
+                icon={Phone}
+                label={t.phone}
+                value={profile.phone || profile.phone_number}
+                field="phone_number"
+                editable
+              />
             </div>
           </ProfileSection>
 
-          {/* =================================================
-              Address
-              ================================================= */}
-
+          {/* Address */}
           <ProfileSection icon={MapPin} title={t.addressInformation}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InfoItem
                 icon={MapPin}
                 label={t.address}
                 value={profile.address}
+                field="address"
+                editable
                 fullWidth
               />
 
@@ -808,32 +1043,53 @@ const Profile = () => {
                 icon={MapPin}
                 label={t.village}
                 value={profile.village}
+                field="village"
+                editable
               />
 
               <InfoItem
                 icon={MapPin}
                 label={t.district}
                 value={profile.district}
+                field="district"
+                editable
               />
 
-              <InfoItem icon={MapPin} label={t.city} value={profile.city} />
+              <InfoItem
+                icon={MapPin}
+                label={t.city}
+                value={profile.city}
+                field="city"
+                editable
+              />
 
-              <InfoItem icon={MapPin} label={t.state} value={profile.state} />
+              <InfoItem
+                icon={MapPin}
+                label={t.state}
+                value={profile.state}
+                field="state"
+                editable
+              />
 
               <InfoItem
                 icon={Globe2}
                 label={t.country}
                 value={profile.country}
+                field="country"
+                editable
               />
 
-              <InfoItem icon={Hash} label={t.pincode} value={profile.pincode} />
+              <InfoItem
+                icon={Hash}
+                label={t.pincode}
+                value={profile.pincode}
+                field="pincode"
+                editable
+              />
             </div>
           </ProfileSection>
 
-          {/* =================================================
-              Role specific
-              ================================================= */}
-
+          {/* Role specific */}
           {(role === "government" || role === "government_official") && (
             <GovernmentOfficialSection />
           )}

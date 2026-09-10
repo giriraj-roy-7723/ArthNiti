@@ -13,7 +13,6 @@ from src.schema.government_officials import GovernmentOfficial
 from src.middlewares.auth import create_access_token
 from src.utils.id_generator import generate_user_id
 from src.utils.password import hash_password, verify_password
-from src.services.storage_services import get_profile_image_url
 from src.lib.redis_client import blacklist_token
 
 from src.controllers.government_official_controller import (
@@ -362,7 +361,7 @@ async def get_my_profile(
     # Profile image
     # ---------------------------------------------------------
 
-    image_url = get_profile_image_url(user.profile_pic)
+    image_url = user.profile_pic
 
     # ---------------------------------------------------------
     # Role-specific information
@@ -553,4 +552,8 @@ async def update_my_profile(
             detail="Unable to update user profile",
         )
 
-    return user
+    return await get_my_profile(
+        user_id=user_id,
+        language=language,
+        db=db,
+    )

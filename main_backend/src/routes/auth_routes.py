@@ -47,7 +47,7 @@ async def get_profile(
     return await get_my_profile(user_id, language, db)
 
 
-@router.patch("/update_profile")
+@router.patch("/update-profile")
 async def update_profile(
     data: UserUpdateRequest,
     language: str = Query("ennglish"),
