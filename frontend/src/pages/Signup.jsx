@@ -100,7 +100,7 @@ const InputField = ({
             type="button"
             onClick={onTogglePassword}
             tabIndex={-1}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? t.hidePassword : t.showPassword}
             className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-blue-400 transition-colors focus:outline-none"
           >
             {showPassword ? (
@@ -264,6 +264,8 @@ const Signup = () => {
   const translations = {
     english: {
       title: "Create Account",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
       subtitle: "Join us and start your journey",
       networkErr:
         "Unable to reach the backend. Start the API on port 8000 and try again.",
@@ -337,6 +339,8 @@ const Signup = () => {
     },
     hindi: {
       title: "खाता बनाएं",
+      showPassword: "पासवर्ड दिखाएं",
+      hidePassword: "पासवर्ड छिपाएं",
       subtitle: "हमसे जुड़ें और अपनी यात्रा शुरू करें",
       networkErr:
         "बैकएंड तक पहुँचने में असमर्थ। पोर्ट 8000 पर API शुरू करें और पुनः प्रयास करें।",
@@ -410,6 +414,8 @@ const Signup = () => {
     },
     bengali: {
       title: "অ্যাকাউন্ট তৈরি করুন",
+      showPassword: "পাসওয়ার্ড দেখান",
+      hidePassword: "পাসওয়ার্ড লুকান",
       subtitle: "আমাদের সাথে যোগ দিন এবং আপনার যাত্রা শুরু করুন",
       networkErr:
         "ব্যাকএন্ডে পৌঁছাতে অক্ষম। পোর্ট 8000-এ API চালু করুন এবং আবার চেষ্টা করুন।",

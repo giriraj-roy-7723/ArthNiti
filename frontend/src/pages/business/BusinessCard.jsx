@@ -179,7 +179,7 @@ const BusinessCard = ({
                     className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-gray-300 transition hover:bg-blue-500/10 hover:text-blue-400"
                   >
                     <Pencil size={16} />
-                    <span>Edit Details</span>
+                    <span>{t.editDetails}</span>
                   </button>
 
                   <div className="my-1 border-t border-gray-800" />

@@ -39,7 +39,7 @@ const InfoItem = ({
   editValue = "",
   onEditChange,
   saving = false,
-  displayFallback = "Not available",
+  displayFallback,
 }) => (
   <div
     className={`rounded-xl border border-gray-800 bg-gray-950/40 p-4 ${

@@ -1,7 +1,16 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
-const ImageLightbox = ({ src, alt = "Image", onClose }) => {
+const ImageLightbox = ({ src, alt, onClose }) => {
+  const { language } = useLanguage();
+  const closeLabels = {
+    english: "Close image viewer",
+    hindi: "इमेज व्यूअर बंद करें",
+    bengali: "ছবির ভিউয়ার বন্ধ করুন",
+  };
+  const imageLabels = { english: "Image", hindi: "इमेज", bengali: "ছবি" };
+  const resolvedAlt = alt || imageLabels[language] || imageLabels.english;
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") onClose();
@@ -18,7 +27,7 @@ const ImageLightbox = ({ src, alt = "Image", onClose }) => {
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label={alt}
+      aria-label={resolvedAlt}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -26,7 +35,7 @@ const ImageLightbox = ({ src, alt = "Image", onClose }) => {
       <button
         type="button"
         onClick={onClose}
-        aria-label="Close image viewer"
+        aria-label={closeLabels[language] || closeLabels.english}
         className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white transition hover:bg-white/15"
       >
         <X size={21} />
@@ -34,7 +43,7 @@ const ImageLightbox = ({ src, alt = "Image", onClose }) => {
 
       <img
         src={src}
-        alt={alt}
+        alt={resolvedAlt}
         className="max-h-[90vh] max-w-[95vw] rounded-xl object-contain shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       />

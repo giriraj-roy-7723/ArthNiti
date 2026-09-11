@@ -40,6 +40,9 @@ const Sidebar = () => {
       hindi: "Hindi (हिंदी)",
       bengali: "Bengali (বাংলা)",
       logout: "Log Out",
+      logoAlt: "ArthNiti Logo",
+      openNavigation: "Open Navigation",
+      collapseNavigation: "Collapse Navigation",
     },
     hindi: {
       brand: "अर्थनीति",
@@ -55,6 +58,9 @@ const Sidebar = () => {
       hindi: "हिंदी (हिंदी)",
       bengali: "बंगाली (বাংলা)",
       logout: "लॉग आउट",
+      logoAlt: "अर्थनीति लोगो",
+      openNavigation: "नेविगेशन खोलें",
+      collapseNavigation: "नेविगेशन संक्षिप्त करें",
     },
     bengali: {
       brand: "অর্থনীতি",
@@ -70,6 +76,9 @@ const Sidebar = () => {
       hindi: "হিন্দি (हिंदी)",
       bengali: "বাংলা (বাংলা)",
       logout: "লগ আউট",
+      logoAlt: "অর্থনীতি লোগো",
+      openNavigation: "নেভিগেশন খুলুন",
+      collapseNavigation: "নেভিগেশন বন্ধ করুন",
     },
   };
 
@@ -103,7 +112,7 @@ const Sidebar = () => {
           type="button"
           onClick={() => setIsOpen(true)}
           className="fixed top-5 left-5 z-50 flex h-10 w-10 items-center justify-center rounded-xl border border-gray-800 bg-gray-900/90 text-gray-400 shadow-xl backdrop-blur-md transition-all hover:border-blue-500/40 hover:bg-gray-800 hover:text-white"
-          title="Open Navigation"
+          title={t.openNavigation}
         >
           <PanelLeftOpen size={20} />
         </button>
@@ -128,7 +137,7 @@ const Sidebar = () => {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-600/20 p-2 flex items-center justify-center shadow-[0_10px_20px_rgba(37,99,235,0.25)] translate-z-10 border border-blue-500/30">
                   <img
                     src="/icon.svg"
-                    alt="ArthNiti Logo"
+                    alt={t.logoAlt}
                     className="w-full h-full object-contain drop-shadow-md"
                   />
                 </div>
@@ -142,7 +151,7 @@ const Sidebar = () => {
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-800 bg-gray-900/60 text-gray-400 transition hover:border-gray-700 hover:bg-gray-800 hover:text-white"
-                title="Collapse Navigation"
+                title={t.collapseNavigation}
               >
                 <PanelLeftClose size={16} />
               </button>

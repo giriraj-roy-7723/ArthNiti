@@ -323,10 +323,10 @@ const EditBusinessModal = ({
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">
-                Edit Business Details
+                {t.editBusinessDetails}
               </h2>
               <p className="mt-1 text-sm text-gray-500">
-                Update information and physical location for this business.
+                {t.editBusinessDescription}
               </p>
             </div>
           </div>
@@ -362,7 +362,7 @@ const EditBusinessModal = ({
               <div className="mb-4 flex items-center gap-2">
                 <Navigation size={17} className="text-blue-400" />
                 <h3 className="text-base font-bold text-white">
-                  Update location from profile address?
+                  {t.updateLocationFromProfile}
                 </h3>
               </div>
 
@@ -428,10 +428,10 @@ const EditBusinessModal = ({
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white">
-                        Keep or enter custom location
+                        {t.customLocation}
                       </p>
                       <p className="mt-1 text-xs text-gray-500">
-                        Edit individual location fields below
+                        {t.customLocationDescription}
                       </p>
                     </div>
                   </div>
@@ -461,7 +461,7 @@ const EditBusinessModal = ({
                   <label className="mb-2 block text-sm font-semibold text-gray-300">
                     {t.category}
                     <span className="ml-1.5 text-xs font-normal text-gray-500">
-                      (Cannot be changed)
+                      ({t.categoryNotEditable})
                     </span>
                   </label>
                   <input

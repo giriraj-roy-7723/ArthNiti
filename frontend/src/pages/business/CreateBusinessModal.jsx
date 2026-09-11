@@ -440,7 +440,7 @@ const CreateBusinessModal = ({ isOpen, onClose, onSuccess, language, t }) => {
                         {t.noDifferentLocation}
                       </p>
                       <p className="mt-1 text-xs text-gray-500">
-                        Enter the business location manually
+                        {t.manualLocation}
                       </p>
                     </div>
                   </div>

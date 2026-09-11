@@ -29,6 +29,8 @@ const Login = () => {
       signIn: "Sign In",
       noAccount: "Don't have an account? ",
       signUp: "Sign Up",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
     },
     hindi: {
       welcome: "वापसी पर स्वागत है",
@@ -43,6 +45,8 @@ const Login = () => {
       signIn: "साइन इन करें",
       noAccount: "क्या आपके पास खाता नहीं है? ",
       signUp: "साइन अप करें",
+      showPassword: "पासवर्ड दिखाएं",
+      hidePassword: "पासवर्ड छिपाएं",
     },
     bengali: {
       welcome: "স্বাগতম",
@@ -57,6 +61,8 @@ const Login = () => {
       signIn: "সাইন ইন করুন",
       noAccount: "কোনো অ্যাকাউন্ট নেই? ",
       signUp: "সাইন আপ করুন",
+      showPassword: "পাসওয়ার্ড দেখান",
+      hidePassword: "পাসওয়ার্ড লুকান",
     },
   };
 
@@ -154,7 +160,7 @@ const Login = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-blue-400 transition-colors focus:outline-none"
                 tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t.hidePassword : t.showPassword}
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5" />

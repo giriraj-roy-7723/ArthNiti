@@ -371,6 +371,7 @@ import {
 import { api } from "../../utils/api";
 import { supabase } from "../../utils/supabase";
 import ImageLightbox from "../../components/ImageLightbox";
+import { useLanguage } from "../../context/LanguageContext";
 
 const IMAGE_BUCKET = "business_images";
 const MAX_IMAGES_PER_UPLOAD = 20;
@@ -385,6 +386,54 @@ const BusinessImageGallery = ({
   uploadingLabel = "Uploading...",
   errorLabel = "Unable to load business images.",
 }) => {
+  const { language } = useLanguage();
+  const galleryText = {
+    english: {
+      maxImages: (count) => `Maximum limit is ${count} images total.`,
+      imageOnly: "Please select image files only.",
+      imageFile: "Please select an image file.",
+      replaceFailed: "Failed to replace image.",
+      removeConfirm: "Are you sure you want to remove this image?",
+      removeFailed: "Failed to remove image.",
+      clearConfirm: "Are you sure you want to remove all images?",
+      clearFailed: "Failed to clear all images.",
+      removeAll: "Remove all images",
+      clearAll: "Clear All",
+      view: (label) => `View ${label}`,
+      replace: "Replace image",
+      delete: "Delete image",
+    },
+    hindi: {
+      maxImages: (count) => `कुल अधिकतम ${count} तस्वीरें हो सकती हैं।`,
+      imageOnly: "कृपया केवल तस्वीर फ़ाइलें चुनें।",
+      imageFile: "कृपया एक तस्वीर फ़ाइल चुनें।",
+      replaceFailed: "तस्वीर बदलना विफल रहा।",
+      removeConfirm: "क्या आप वाकई इस तस्वीर को हटाना चाहते हैं?",
+      removeFailed: "तस्वीर हटाना विफल रहा।",
+      clearConfirm: "क्या आप वाकई सभी तस्वीरें हटाना चाहते हैं?",
+      clearFailed: "सभी तस्वीरें हटाना विफल रहा।",
+      removeAll: "सभी तस्वीरें हटाएं",
+      clearAll: "सभी साफ़ करें",
+      view: (label) => `${label} देखें`,
+      replace: "तस्वीर बदलें",
+      delete: "तस्वीर हटाएं",
+    },
+    bengali: {
+      maxImages: (count) => `সর্বোচ্চ মোট ${count}টি ছবি হতে পারে।`,
+      imageOnly: "অনুগ্রহ করে শুধুমাত্র ছবির ফাইল নির্বাচন করুন।",
+      imageFile: "অনুগ্রহ করে একটি ছবির ফাইল নির্বাচন করুন।",
+      replaceFailed: "ছবি পরিবর্তন করা যায়নি।",
+      removeConfirm: "আপনি কি নিশ্চিত যে এই ছবিটি সরাতে চান?",
+      removeFailed: "ছবি সরানো যায়নি।",
+      clearConfirm: "আপনি কি নিশ্চিত যে সব ছবি সরাতে চান?",
+      clearFailed: "সব ছবি সরানো যায়নি।",
+      removeAll: "সব ছবি সরান",
+      clearAll: "সব মুছুন",
+      view: (label) => `${label} দেখুন`,
+      replace: "ছবি পরিবর্তন করুন",
+      delete: "ছবি মুছুন",
+    },
+  }[language] || galleryText.english;
   const addInputRef = useRef(null);
   const replaceInputRef = useRef(null);
 
@@ -476,12 +525,12 @@ const BusinessImageGallery = ({
     try {
       if (imageUrls.length + files.length > MAX_IMAGES_PER_UPLOAD) {
         throw new Error(
-          `Maximum limit is ${MAX_IMAGES_PER_UPLOAD} images total.`,
+          galleryText.maxImages(MAX_IMAGES_PER_UPLOAD),
         );
       }
 
       if (files.some((file) => !file.type.startsWith("image/"))) {
-        throw new Error("Please select image files only.");
+        throw new Error(galleryText.imageOnly);
       }
 
       const uploadedUrls = await Promise.all(
@@ -521,7 +570,7 @@ const BusinessImageGallery = ({
 
     try {
       if (!file.type.startsWith("image/")) {
-        throw new Error("Please select an image file.");
+        throw new Error(galleryText.imageFile);
       }
 
       const newPublicUrl = await uploadFileToSupabase(file);
@@ -537,7 +586,7 @@ const BusinessImageGallery = ({
     } catch (err) {
       console.error("Failed to replace image:", err);
       setError(
-        err.response?.data?.detail || err.message || "Failed to replace image.",
+        err.response?.data?.detail || err.message || galleryText.replaceFailed,
       );
     } finally {
       setActionInProgress(false);
@@ -549,7 +598,7 @@ const BusinessImageGallery = ({
   const handleDeleteSingle = async (event, urlToDelete) => {
     event.stopPropagation();
 
-    if (!window.confirm("Are you sure you want to remove this image?")) {
+    if (!window.confirm(galleryText.removeConfirm)) {
       return;
     }
 
@@ -570,14 +619,14 @@ const BusinessImageGallery = ({
       }
     } catch (err) {
       console.error("Failed to delete image:", err);
-      setError(err.response?.data?.detail || "Failed to remove image.");
+      setError(err.response?.data?.detail || galleryText.removeFailed);
     } finally {
       setActionInProgress(false);
     }
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm("Are you sure you want to remove all images?")) {
+    if (!window.confirm(galleryText.clearConfirm)) {
       return;
     }
 
@@ -589,7 +638,7 @@ const BusinessImageGallery = ({
       setImageUrls([]);
     } catch (err) {
       console.error("Failed to clear images:", err);
-      setError(err.response?.data?.detail || "Failed to clear all images.");
+      setError(err.response?.data?.detail || galleryText.clearFailed);
     } finally {
       setActionInProgress(false);
     }
@@ -617,10 +666,10 @@ const BusinessImageGallery = ({
                 onClick={handleClearAll}
                 disabled={isBusy}
                 className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                title="Remove all images"
+                title={galleryText.removeAll}
               >
                 <Trash2 size={13} />
-                <span>Clear All</span>
+                <span>{galleryText.clearAll}</span>
               </button>
             )}
 
@@ -689,7 +738,7 @@ const BusinessImageGallery = ({
                 type="button"
                 onClick={() => setSelectedImage(url)}
                 className="absolute inset-0 bg-transparent"
-                aria-label={`View ${title}`}
+                aria-label={galleryText.view(title)}
               />
 
               {canUpload && (
@@ -698,7 +747,7 @@ const BusinessImageGallery = ({
                     type="button"
                     onClick={(event) => triggerReplace(event, url)}
                     disabled={isBusy}
-                    title="Replace image"
+                    title={galleryText.replace}
                     className="flex h-6 w-6 items-center justify-center rounded-md border border-white/20 bg-black/60 text-white backdrop-blur-md transition hover:bg-blue-600 hover:text-white disabled:opacity-40"
                   >
                     <RefreshCw
@@ -711,7 +760,7 @@ const BusinessImageGallery = ({
                     type="button"
                     onClick={(event) => handleDeleteSingle(event, url)}
                     disabled={isBusy}
-                    title="Delete image"
+                    title={galleryText.delete}
                     className="flex h-6 w-6 items-center justify-center rounded-md border border-white/20 bg-black/60 text-white backdrop-blur-md transition hover:bg-red-600 hover:text-white disabled:opacity-40"
                   >
                     <Trash2 size={11} />
