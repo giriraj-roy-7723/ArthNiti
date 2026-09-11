@@ -7,19 +7,18 @@ async def send_otp_email(
     otp: str,
 ):
     message = MessageSchema(
-        subject="Your verification code",
+        subject="ArthNiti verification code",
         recipients=[email],
         body=f"""
-            Hello,
+Hello,
 
-            Your OTP for email verification is: {otp}
+    Your OTP for email verification is: {otp}
 
-            This code is valid for 5 minutes. Do not share it with anyone.
+    This code is valid for 5 minutes. Do not share it with anyone.
+    If you did not request this, you can safely ignore this email.
 
-            If you did not request this, you can safely ignore this email.
-
-            Best regards,
-            Business Advisory Platform Team
+    Best regards,
+    ArthNiti Team
         """,
         subtype="plain",
     )

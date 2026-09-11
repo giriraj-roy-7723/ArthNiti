@@ -13,7 +13,9 @@ from src.routes import (
     finance_routes,
     getter_routes,
     assistant,
+    chatbot,
 )
+from src.routes.chatbot import init_onboarding_knowledge_base
 from src.config.database import engine, Base
 from contextlib import asynccontextmanager
 
@@ -28,7 +30,8 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
 
     print("Tables after create:", Base.metadata.tables.keys())
-
+    
+    init_onboarding_knowledge_base()
     await init_langgraph()
     yield
     await close_langgraph()
@@ -101,6 +104,9 @@ app.include_router(
     prefix="/api/v1",
     tags=["Business Data Getters"],
 )
+
+# chatbot routes
+app.include_router(chatbot.router, prefix="/api/v1/chat", tags=["Onboarding Assistant"])
 
 
 # Server test route

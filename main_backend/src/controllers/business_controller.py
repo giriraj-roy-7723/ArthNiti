@@ -805,7 +805,7 @@ def _build_multilingual_fuzzy_filter(
     primary_lang: str,
     fallback_term: str | None = None,
     fallback_lang: str = "en",
-    threshold: float = 0.3,
+    threshold: float = 0.7,
 ):
     """
     Builds a fuzzy filter against the requested language.

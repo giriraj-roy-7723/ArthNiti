@@ -367,6 +367,7 @@ IMPORTANT:
 - Revenue means monthly sales.
 - Direct costs are costs directly associated with producing/selling the product.
 - Fixed costs are recurring costs that do not directly vary with sales.
+- if user has not given any value or given 0 value try to generate proper valuess
 
 USER FINANCIAL INPUTS:
 {json.dumps(user_inputs, indent=2)}
