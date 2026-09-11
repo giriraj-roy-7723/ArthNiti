@@ -1,5 +1,7 @@
+import asyncio
 import os
-from typing import Literal
+from fastapi import HTTPException
+from typing import Literal, Optional
 
 from langchain_core.tools import tool
 from tavily import TavilyClient
@@ -14,17 +16,46 @@ from src.schema.business_analysis import BusinessAnalysis
 from src.schema.business import (
     Business,
     BusinessStatus,
-)  # Ensure BusinessStatus is imported
+)
 from src.schema.chat import ChatSession
 
-# Import your multi-language utility if needed:
-# from src.services.localization import ensure_business_language, normalize_language
+# Geocoding & localization utilities used in update controller
+from src.utils.translator_utils import translate_entry
+from src.utils.geo_utils import get_coordinates
 
 from src.services.business_report_search import (
     search_business_report as report_vector_search,
 )
 from src.services.scheme_embedding import generate_embedding
 from src.services.scheme_search import search_similar_schemes
+
+
+
+LANG_NORMALIZER = {
+    "english": "en",
+    "en": "en",
+    "eng": "en",
+    "bengali": "bn",
+    "bng": "bn",
+    "bn": "bn",
+    "hindi": "hi",
+    "hin": "hi",
+    "hi": "hi",
+}
+
+
+def normalize_language(language: str) -> str:
+    language = language.lower().strip()
+
+    lang_code = LANG_NORMALIZER.get(language)
+
+    if not lang_code:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported language: {language}",
+        )
+
+    return lang_code
 
 
 def get_en(field) -> str:
@@ -79,10 +110,177 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
         }
 
     @tool
+    async def update_business_details(
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        village: Optional[str] = None,
+        district: Optional[str] = None,
+        city: Optional[str] = None,
+        state: Optional[str] = None,
+        country: Optional[str] = None,
+        pincode: Optional[str] = None,
+        margin_capital: Optional[float] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+        language: str = "en",
+    ) -> dict:
+        """
+        DATABASE MUTATION TOOL: Updates metadata, location, margin capital, and coordinates
+        for the current business. Automatically translates text fields and updates GPS coordinates.
+
+        CRITICAL: Never execute this tool without explicit user confirmation of the fields to change.
+
+        Args:
+            name: New business name.
+            description: Detailed business description or model.
+            village: Village/Locality name.
+            district: District name.
+            city: City or town name.
+            state: State or province.
+            country: Country name.
+            pincode: Postal/PIN code.
+            margin_capital: Updated initial capital/investment amount.
+            latitude: Specific GPS latitude coordinate (optional).
+            longitude: Specific GPS longitude coordinate (optional).
+            language: Language code of the provided inputs (default 'en').
+        """
+        try:
+            lang_code = normalize_language(language)
+
+            # 1. Fetch business record
+            stmt = select(Business).where(
+                Business.id == business_id,
+                Business.owner_id == user_id,
+            )
+            result = await db.execute(stmt)
+            business = result.scalar_one_or_none()
+
+            if not business:
+                return {"error": "Business not found or access denied."}
+
+            # 2. Extract and update multilingual fields
+            multilingual_inputs = {
+                "business_name": name,
+                "description": description,
+                "village": village,
+                "district": district,
+                "city": city,
+                "state": state,
+                "country": country,
+            }
+
+            updated_multilingual_fields = {
+                k: v.strip()
+                for k, v in multilingual_inputs.items()
+                if v is not None and v.strip() != ""
+            }
+
+            if updated_multilingual_fields:
+                for field, new_val in updated_multilingual_fields.items():
+                    setattr(business, field, {lang_code: new_val})
+
+                await db.flush()
+
+                # Re-translate to other supported locales
+                all_other_languages = {"en", "bn", "hi"} - {lang_code}
+                source_entry = {k: v for k, v in updated_multilingual_fields.items()}
+
+                for target_lang in all_other_languages:
+                    try:
+                        translated_entry = await asyncio.to_thread(
+                            translate_entry,
+                            entry=source_entry,
+                            target_language=target_lang,
+                            source_language=lang_code,
+                        )
+
+                        for field, trans_val in (translated_entry or {}).items():
+                            if trans_val is not None:
+                                current_dict = dict(
+                                    getattr(business, field, None) or {}
+                                )
+                                current_dict[target_lang] = trans_val
+                                setattr(business, field, current_dict)
+                    except Exception as exc:
+                        print(f"Translation warning for {target_lang}: {exc}")
+
+                await db.flush()
+
+            # 3. Handle GPS Coordinates & Geocoding
+            location_fields_touched = any(
+                k in updated_multilingual_fields
+                for k in ["city", "district", "state", "country"]
+            )
+
+            if latitude is not None and longitude is not None:
+                business.latitude = latitude
+                business.longitude = longitude
+            elif location_fields_touched or (
+                business.latitude is None and business.longitude is None
+            ):
+                city_val = (business.city or {}).get(lang_code) or ""
+                district_val = (business.district or {}).get(lang_code) or ""
+                state_val = (business.state or {}).get(lang_code) or ""
+                country_val = (business.country or {}).get(lang_code) or ""
+
+                location_parts = [city_val, district_val, state_val, country_val]
+                location_str = ", ".join(
+                    part.strip() for part in location_parts if part and part.strip()
+                )
+
+                if location_str:
+                    try:
+                        lat, lon = await asyncio.to_thread(
+                            get_coordinates, location_str
+                        )
+                        business.latitude = lat
+                        business.longitude = lon
+                    except Exception as exc:
+                        print(f"Geocoding warning: {exc}")
+
+            # 4. Handle Non-multilingual Scalars
+            if margin_capital is not None:
+                business.margin_capital = margin_capital
+
+            if pincode is not None:
+                business.pincode = pincode.strip() if pincode else None
+
+            # 5. Commit changes
+            await db.commit()
+            await db.refresh(business)
+
+            return {
+                "success": True,
+                "message": "Business details updated successfully.",
+                "business_id": business.id,
+                "business_name": get_en(business.business_name),
+                "margin_capital": business.margin_capital,
+                "latitude": business.latitude,
+                "longitude": business.longitude,
+                "updated_fields": list(updated_multilingual_fields.keys())
+                + (
+                    [
+                        k
+                        for k, v in [
+                            ("margin_capital", margin_capital),
+                            ("pincode", pincode),
+                            ("coordinates", latitude or longitude),
+                        ]
+                        if v is not None
+                    ]
+                ),
+            }
+
+        except IntegrityError as e:
+            await db.rollback()
+            return {"error": f"Database integrity error updating details: {str(e)}"}
+        except Exception as e:
+            await db.rollback()
+            return {"error": f"Failed to update business details: {str(e)}"}
+
+    @tool
     async def update_business_status(
-        new_status: Literal[
-            "pending","active","closed"
-        ],
+        new_status: Literal["pending", "active", "closed"],
         language: str = "en",
     ) -> dict:
         """
@@ -110,7 +308,6 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
                 else str(business.status)
             )
 
-            # Convert string to Enum if needed
             target_status = (
                 BusinessStatus[new_status]
                 if hasattr(BusinessStatus, new_status)
@@ -119,10 +316,6 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
             business.status = target_status
 
             await db.flush()
-
-            # Optional: if ensure_business_language is configured in your project
-            # await ensure_business_language(business=business, target_language=language, db=db)
-
             await db.commit()
             await db.refresh(business)
 
@@ -373,7 +566,8 @@ def get_business_agent_tools(db: AsyncSession, business_id: str, user_id: str) -
 
     return [
         get_business_details,
-        update_business_status,  # Added tool
+        update_business_details,  # Newly added
+        update_business_status,
         get_all_other_user_businesses,
         get_previous_chat_session_summaries,
         get_business_profile,

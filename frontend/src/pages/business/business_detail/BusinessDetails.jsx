@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../utils/api";
 import { useLanguage } from "../../../context/LanguageContext";
+import BusinessImageGallery from "../BusinessImageGallery";
 import BusinessDetailsModal from "./BusinessDetailsModal";
 
 const translations = {
@@ -689,59 +690,71 @@ const BusinessCard = ({ business, languageCode, t, onClick }) => {
   ].filter(Boolean);
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex min-h-64 flex-col rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-left shadow-xl backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:border-indigo-400/30 hover:bg-white/[0.09]"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
-            <Building2 size={21} />
+    <div className="group flex min-h-64 flex-col rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-left shadow-xl backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:border-indigo-400/30 hover:bg-white/[0.09]">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full flex-1 flex-col text-left"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
+              <Building2 size={21} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-lg font-semibold text-white">
+                {businessName}
+              </h2>
+              <p className="mt-0.5 truncate text-sm text-indigo-300">
+                {category}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold text-white">
-              {businessName}
-            </h2>
-            <p className="mt-0.5 truncate text-sm text-indigo-300">
-              {category}
-            </p>
-          </div>
+
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+            <CheckCircle2 size={13} />
+            {t.active}
+          </span>
         </div>
 
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
-          <CheckCircle2 size={13} />
-          {t.active}
-        </span>
-      </div>
+        <div className="mt-5 flex-1">
+          <p className="line-clamp-3 text-sm leading-6 text-slate-400">
+            {description}
+          </p>
+        </div>
 
-      <div className="mt-5 flex-1">
-        <p className="line-clamp-3 text-sm leading-6 text-slate-400">
-          {description}
-        </p>
-      </div>
-
-      <div className="mt-5 space-y-3 border-t border-white/10 pt-4">
-        {locationParts.length > 0 && (
-          <div className="flex items-start gap-2 text-sm text-slate-400">
-            <MapPin size={16} className="mt-0.5 shrink-0 text-slate-500" />
-            <span className="line-clamp-2">{locationParts.join(", ")}</span>
-          </div>
-        )}
-
-        {business.margin_capital !== null &&
-          business.margin_capital !== undefined && (
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <CircleDollarSign size={16} className="shrink-0 text-slate-500" />
-              <span>{formatCapital(business.margin_capital)}</span>
+        <div className="mt-5 space-y-3 border-t border-white/10 pt-4">
+          {locationParts.length > 0 && (
+            <div className="flex items-start gap-2 text-sm text-slate-400">
+              <MapPin size={16} className="mt-0.5 shrink-0 text-slate-500" />
+              <span className="line-clamp-2">{locationParts.join(", ")}</span>
             </div>
           )}
-      </div>
 
-      <div className="mt-5 text-sm font-medium text-indigo-300 transition group-hover:text-indigo-200">
-        {t.viewDetails} →
-      </div>
-    </button>
+          {business.margin_capital !== null &&
+            business.margin_capital !== undefined && (
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                <CircleDollarSign
+                  size={16}
+                  className="shrink-0 text-slate-500"
+                />
+                <span>{formatCapital(business.margin_capital)}</span>
+              </div>
+            )}
+        </div>
+
+        <div className="mt-5 text-sm font-medium text-indigo-300 transition group-hover:text-indigo-200">
+          {t.viewDetails} →
+        </div>
+      </button>
+
+      <BusinessImageGallery
+        businessId={business.id}
+        title={t.businessImages}
+        emptyLabel={t.noImages}
+        errorLabel={t.imagesLoadFailed}
+      />
+    </div>
   );
 };
 

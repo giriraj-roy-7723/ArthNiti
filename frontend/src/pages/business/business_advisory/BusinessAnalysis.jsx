@@ -19,6 +19,8 @@ import {
   Play,
   Clock,
   CheckCircle2,
+  Pencil,
+  X,
 } from "lucide-react";
 
 import { api, aiApi } from "../../../utils/api";
@@ -67,10 +69,10 @@ const translations = {
     logisticsCost: "Modeled Logistics Cost",
     monthlyFreight: "Estimated monthly freight OPEX:",
     generationFailed: "Generation failed",
-    generateBusinessAnalysis: "Generate Business Analysis",
+    generateBusinessAnalysis: "Configure Business Analysis",
     aiBusinessIntelligence: "AI Business Intelligence",
     generationDescription:
-      "Review business details and define your market radius to initiate AI intelligence analysis.",
+      "Review and modify business parameters and your market radius before initiating AI analysis.",
     businessInformation: "Business Details",
     analysisParameters: "Analysis Parameters",
     analysisRadius: "Analysis Radius",
@@ -79,14 +81,23 @@ const translations = {
     cancel: "Cancel",
     generate: "Generate Analysis",
     generating: "Generating Analysis...",
-    noReport: "No feasibility report is available.",
+    noReport: "No feasibility report is available yet.",
     businessId: "Business ID",
     noAnalysisError: "Failed to load business analysis.",
     tryAgain: "Try Again",
-    longRunningNoticeTitle: "Analysis is being processed in the background",
+    longRunningNoticeTitle: "Analysis is running in the background (5–10 mins)",
     longRunningNoticeText:
-      "Comprehensive market analysis (population, competitors, supply-chain & logistics) typically takes 5 to 10 minutes. You don't need to stay on this page — feel free to continue other work in your workspace. We'll have everything ready when you return.",
+      "Comprehensive market research (population demographics, competitor mapping, supply chain & freight simulation) takes about 5 to 10 minutes. You can safely close this modal, leave this page, or navigate to other workspaces. Your report will be saved automatically.",
     continueWorkspace: "Continue with other tasks",
+    dismissModalNotice: "Close & continue in background",
+    staleBannerTitle: "Business details have changed",
+    staleBannerDesc:
+      "This feasibility report was generated with older business information. Update parameters and regenerate for current insights.",
+    reviewAndRegenerate: "Review & Regenerate",
+    cached: "Cached result",
+    generated: "Newly generated",
+    needsRegeneration: "Needs regeneration",
+    version: "Version",
   },
   hindi: {
     loading: "व्यवसाय विश्लेषण लोड हो रहा है...",
@@ -129,10 +140,10 @@ const translations = {
     logisticsCost: "अनुमानित लॉजिस्टिक्स लागत",
     monthlyFreight: "अनुमानित मासिक फ्रेट OPEX:",
     generationFailed: "विश्लेषण निर्माण विफल रहा",
-    generateBusinessAnalysis: "व्यवसाय विश्लेषण बनाएँ",
+    generateBusinessAnalysis: "व्यवसाय विश्लेषण कॉन्फ़िगर करें",
     aiBusinessIntelligence: "AI बिज़नेस इंटेलिजेंस",
     generationDescription:
-      "व्यवसाय विवरण की समीक्षा करें और विश्लेषण शुरू करने के लिए त्रिज्या चुनें।",
+      "विश्लेषण शुरू करने से पहले व्यवसाय विवरण और बाजार त्रिज्या की समीक्षा या संपादन करें।",
     businessInformation: "व्यवसाय विवरण",
     analysisParameters: "विश्लेषण पैरामीटर",
     analysisRadius: "विश्लेषण त्रिज्या",
@@ -141,14 +152,23 @@ const translations = {
     cancel: "रद्द करें",
     generate: "विश्लेषण बनाएँ",
     generating: "विश्लेषण बनाया जा रहा है...",
-    noReport: "कोई व्यवहार्यता रिपोर्ट उपलब्ध नहीं है।",
+    noReport: "अभी तक कोई व्यवहार्यता रिपोर्ट उपलब्ध नहीं है।",
     businessId: "व्यवसाय ID",
     noAnalysisError: "व्यवसाय विश्लेषण लोड नहीं हो सका।",
     tryAgain: "फिर से प्रयास करें",
-    longRunningNoticeTitle: "विश्लेषण बैकग्राउंड में तैयार हो रहा है",
+    longRunningNoticeTitle: "विश्लेषण बैकग्राउंड में चल रहा है (5–10 मिनट)",
     longRunningNoticeText:
-      "जनसंख्या, प्रतिस्पर्धा और लॉजिस्टिक्स डेटा का विस्तृत विश्लेषण तैयार करने में 5 से 10 मिनट लग सकते हैं। आपको इस पेज पर रुके रहने की आवश्यकता नहीं है — आप अपने अन्य कार्य जारी रख सकते हैं।",
+      "विस्तृत डेटा विश्लेषण में 5 से 10 मिनट का समय लगता है। आप इस विंडो को बंद कर सकते हैं और दूसरे पेज पर जा सकते हैं। आपकी रिपोर्ट तैयार होने पर अपने आप सुरक्षित हो जाएगी।",
     continueWorkspace: "अन्य काम जारी रखें",
+    dismissModalNotice: "बंद करें और बैकग्राउंड में चलने दें",
+    staleBannerTitle: "व्यवसाय विवरण बदल गए हैं",
+    staleBannerDesc:
+      "यह रिपोर्ट पुराने विवरणों के आधार पर तैयार की गई थी। सटीक विश्लेषण के लिए इसे अपडेट करके दोबारा बनाएं।",
+    reviewAndRegenerate: "समीक्षा और दोबारा बनाएं",
+    cached: "कैश किया गया परिणाम",
+    generated: "नया तैयार किया गया",
+    needsRegeneration: "दोबारा बनाने की आवश्यकता",
+    version: "संस्करण",
   },
   bengali: {
     loading: "ব্যবসায়িক বিশ্লেষণ লোড হচ্ছে...",
@@ -191,10 +211,10 @@ const translations = {
     logisticsCost: "আনুমানিক লজিস্টিক খরচ",
     monthlyFreight: "আনুমানিক মাসিক ফ্রেট OPEX:",
     generationFailed: "বিশ্লেষণ তৈরি ব্যর্থ হয়েছে",
-    generateBusinessAnalysis: "ব্যবসায়িক বিশ্লেষণ তৈরি করুন",
+    generateBusinessAnalysis: "ব্যবসায়িক বিশ্লেষণ কনফিগার করুন",
     aiBusinessIntelligence: "AI বিজনেস ইন্টেলিজেন্স",
     generationDescription:
-      "ব্যবসায়ের বিবরণ পর্যালোচনা করুন এবং বিশ্লেষণের পরিধি নির্ধারণ করুন।",
+      "বিশ্লেষণ শুরু করার আগে ব্যবসায়ের তথ্য ও পরিধি পর্যালোচনা ও আপডেট করুন।",
     businessInformation: "ব্যবসায়ের তথ্য",
     analysisParameters: "বিশ্লেষণের প্যারামিটার",
     analysisRadius: "বিশ্লেষণের পরিধি",
@@ -203,14 +223,23 @@ const translations = {
     cancel: "বাতিল",
     generate: "বিশ্লেষণ তৈরি করুন",
     generating: "বিশ্লেষণ তৈরি হচ্ছে...",
-    noReport: "কোনো ব্যবসায়িক সম্ভাব্যতা রিপোর্ট উপলব্ধ নেই।",
+    noReport: "এখনও কোনো সম্ভাব্যতা রিপোর্ট পাওয়া যায়নি।",
     businessId: "ব্যবসার ID",
     noAnalysisError: "ব্যবসায়িক বিশ্লেষণ লোড করা যায়নি।",
     tryAgain: "আবার চেষ্টা করুন",
-    longRunningNoticeTitle: "বিশ্লেষণ ব্যাকগ্রাউন্ডে তৈরি হচ্ছে",
+    longRunningNoticeTitle: "বিশ্লেষণ ব্যাকগ্রাউন্ডে চলছে (৫–১০ মিনিট)",
     longRunningNoticeText:
-      "জনসংখ্যা, প্রতিযোগী এবং লজিস্টিকসের সম্পূর্ণ তথ্য বিশ্লেষণ করতে প্রায় ৫ থেকে ১০ মিনিট সময় লাগতে পারে। আপনাকে এই পৃষ্ঠায় অপেক্ষা করতে হবে না — আপনি নিরাপদে অন্য কাজ চালিয়ে যেতে পারেন।",
+      "সম্পূর্ণ গবেষণা ও লজিস্টিক সিমুলেশন শেষ হতে প্রায় ৫ থেকে ১০ মিনিট সময় লাগতে পারে। আপনি নিশ্চিন্তে এই মোডাল বা পেজ বন্ধ করে অন্য কাজ করতে পারেন।",
     continueWorkspace: "অন্যান্য কাজ চালিয়ে যান",
+    dismissModalNotice: "বন্ধ করে ব্যাকগ্রাউন্ডে চালু রাখুন",
+    staleBannerTitle: "ব্যবসায়ের বিবরণ পরিবর্তিত হয়েছে",
+    staleBannerDesc:
+      "এই রিপোর্টটি পূর্বের তথ্যের ভিত্তিতে তৈরি। নতুন ফলাফলের জন্য তথ্য আপডেট করে পুনরায় তৈরি করুন।",
+    reviewAndRegenerate: "পর্যালোচনা ও পুনরায় তৈরি",
+    cached: "ক্যাশ করা ফলাফল",
+    generated: "নতুন তৈরি",
+    needsRegeneration: "পুনরায় তৈরি করা প্রয়োজন",
+    version: "সংস্করণ",
   },
 };
 
@@ -233,18 +262,35 @@ const BusinessAnalysis = () => {
   const [businessData, setBusinessData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showGenerationModal, setShowGenerationModal] = useState(false);
+
+  const [needsRegeneration, setNeedsRegeneration] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [radiusKm, setRadiusKm] = useState("10");
 
   const pollIntervalRef = useRef(null);
 
   const getApiLanguage = () => currentLanguage;
 
   const fetchBusinessProfile = async () => {
-    const res = await api.get(`/businesses/${businessId}`);
+    const res = await api.get(`/businesses/${businessId}`, {
+      params: { language: getApiLanguage() },
+    });
     return res?.data?.business || res?.data || res;
+  };
+
+  const checkReportStatus = async () => {
+    try {
+      const res = await aiApi.get(
+        `api/v1/businesses/${businessId}/report/status`,
+      );
+      const data = res?.data || res;
+      const isStale = Boolean(data?.needs_regeneration);
+      setNeedsRegeneration(isStale);
+      return isStale;
+    } catch (e) {
+      console.warn("Could not check report staleness status:", e);
+      return false;
+    }
   };
 
   const loadReport = async (silent = false) => {
@@ -255,14 +301,19 @@ const BusinessAnalysis = () => {
       const response = await aiApi.get(
         `api/v1/businesses/${businessId}/report?language=${getApiLanguage()}`,
       );
-      setReport(response.data || response);
-      setShowGenerationModal(false);
+      const reportData = response.data || response;
+      setReport(reportData);
+      setShowConfigModal(false);
       setGenerating(false);
-      setRegenerating(false);
 
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
+      }
+
+      const isStale = await checkReportStatus();
+      if (!isStale && Boolean(reportData?.needs_regeneration)) {
+        setNeedsRegeneration(true);
       }
     } catch (err) {
       if (err?.response?.status === 404) {
@@ -271,7 +322,9 @@ const BusinessAnalysis = () => {
         try {
           const business = await fetchBusinessProfile();
           setBusinessData(business);
-          setShowGenerationModal(true);
+          if (!generating) {
+            setShowConfigModal(true);
+          }
         } catch (fetchErr) {
           setError(
             fetchErr?.response?.data?.detail ||
@@ -296,6 +349,8 @@ const BusinessAnalysis = () => {
       loadReport();
     }
     return () => {
+      setReport(null);
+      setNeedsRegeneration(false);
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
@@ -306,39 +361,69 @@ const BusinessAnalysis = () => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     pollIntervalRef.current = setInterval(() => {
       loadReport(true);
-    }, 15000); // Check every 15s in background
+    }, 15000);
   };
 
-  const handleGenerate = async (event) => {
-    event?.preventDefault();
-    if (generating || !businessData) return;
+  const handleOpenConfig = async () => {
+    try {
+      const business = await fetchBusinessProfile();
+      setBusinessData(business);
+      setShowConfigModal(true);
+    } catch (err) {
+      setError(
+        err?.response?.data?.detail ||
+          err.message ||
+          "Failed to fetch business details.",
+      );
+    }
+  };
 
+  const handleExecuteAnalysis = async ({ updatedFields, radiusKm }) => {
     try {
       setGenerating(true);
       setError("");
 
+      if (Object.keys(updatedFields).length > 0) {
+        await api.patch(`/businesses/${businessId}/update`, updatedFields, {
+          headers: {
+            "Accept-Language": getApiLanguage(),
+          },
+        });
+      }
+
+      const latestBusiness = await fetchBusinessProfile();
+      setBusinessData(latestBusiness);
+
       const requestBody = {
         business_id: businessId,
-        business_name: businessData.business_name,
-        business_type: businessData.category,
-        business_description: businessData.description || null,
-        country: businessData.country || "India",
-        state: businessData.state,
-        district: businessData.district,
-        city: businessData.city || null,
-        village: businessData.village || null,
-        pincode: businessData.pincode || null,
-        margin_capital: Number(businessData.margin_capital || 0),
+        business_name: latestBusiness.business_name,
+        business_type: latestBusiness.category,
+        business_description: latestBusiness.description || null,
+        country: latestBusiness.country || "India",
+        state: latestBusiness.state,
+        district: latestBusiness.district,
+        city: latestBusiness.city || null,
+        village: latestBusiness.village || null,
+        pincode: latestBusiness.pincode || null,
+        margin_capital: Number(latestBusiness.margin_capital || 0),
         radius_km: Number(radiusKm),
         language: getApiLanguage(),
       };
 
       startBackgroundPolling();
 
-      const response = await aiApi.post("api/v1/report/generate", requestBody);
-      setReport(response.data || response);
-      setShowGenerationModal(false);
+      const endpoint = report
+        ? "api/v1/report/generate?force=true"
+        : "api/v1/report/generate";
+
+      const response = await aiApi.post(endpoint, requestBody);
+      const generatedReport = response.data || response;
+
+      setReport(generatedReport);
+      setShowConfigModal(false);
       setGenerating(false);
+      setNeedsRegeneration(false);
+
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     } catch (err) {
       setError(
@@ -349,55 +434,9 @@ const BusinessAnalysis = () => {
     }
   };
 
-  const handleRegenerate = async () => {
-    if (regenerating) return;
-
-    try {
-      setRegenerating(true);
-      setError("");
-
-      const business = await fetchBusinessProfile();
-      const existingRadius =
-        report?.raw_evidence?.population?.data?.radius_km ||
-        report?.raw_evidence?.population?.radius_km ||
-        radiusKm ||
-        10;
-
-      const requestBody = {
-        business_id: businessId,
-        business_name: business.business_name,
-        business_type: business.category,
-        business_description: business.description || null,
-        country: business.country || "India",
-        state: business.state,
-        district: business.district,
-        city: business.city || null,
-        village: business.village || null,
-        pincode: business.pincode || null,
-        margin_capital: Number(business.margin_capital || 0),
-        radius_km: Number(existingRadius),
-        language: getApiLanguage(),
-      };
-
-      startBackgroundPolling();
-
-      const response = await aiApi.post(
-        "api/v1/report/generate?force=true",
-        requestBody,
-      );
-      setReport(response.data || response);
-      setRegenerating(false);
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    } catch (err) {
-      setError(
-        err?.response?.data?.detail ||
-          err?.message ||
-          "Failed to regenerate business analysis.",
-      );
-      setRegenerating(false);
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    }
-  };
+  const isStaleReport = Boolean(
+    needsRegeneration || report?.needs_regeneration,
+  );
 
   const evidenceCards = [
     {
@@ -493,53 +532,6 @@ const BusinessAnalysis = () => {
     );
   }
 
-  if (!report && showGenerationModal) {
-    return (
-      <GenerationPage
-        business={businessData}
-        radiusKm={radiusKm}
-        onRadiusChange={(e) => setRadiusKm(e.target.value)}
-        onSubmit={handleGenerate}
-        onClose={() => navigate(`/businesses/${businessId}`)}
-        loading={generating}
-        error={error}
-        t={t}
-      />
-    );
-  }
-
-  if (error && !report) {
-    return (
-      <div className="min-h-screen bg-gray-950 px-4 py-8 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <button
-            type="button"
-            onClick={() => navigate(`/businesses/${businessId}`)}
-            className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-gray-400 transition hover:text-white"
-          >
-            <ArrowLeft size={16} />
-            {t.backWorkspace}
-          </button>
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-400" />
-            <h2 className="text-xl font-bold">{t.operationFailed}</h2>
-            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-400">
-              {error}
-            </p>
-            <button
-              type="button"
-              onClick={() => loadReport(false)}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold transition hover:bg-blue-500"
-            >
-              <RefreshCw size={16} />
-              {t.tryAgain}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const population = report?.raw_evidence?.population?.data;
   const competitors = report?.raw_evidence?.competitors?.data;
   const supplyChain = report?.raw_evidence?.supply_chain?.data;
@@ -557,8 +549,33 @@ const BusinessAnalysis = () => {
           {t.backWorkspace}
         </button>
 
-        {/* Long Running Regeneration Banner */}
-        {regenerating && (
+        {/* Stale Analysis Alert Banner */}
+        {isStaleReport && !generating && (
+          <div className="mb-6 flex flex-col items-start justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 shadow-lg backdrop-blur-md sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-300">
+                  {t.staleBannerTitle}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-gray-300">
+                  {t.staleBannerDesc}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenConfig}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-bold text-gray-950 transition hover:bg-amber-400"
+            >
+              <RefreshCw size={14} />
+              {t.reviewAndRegenerate}
+            </button>
+          </div>
+        )}
+
+        {/* Global In-Progress Banner */}
+        {generating && (
           <div className="mb-6 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-5 shadow-lg backdrop-blur-md">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
@@ -603,24 +620,27 @@ const BusinessAnalysis = () => {
             </div>
           </div>
 
-          <BusinessScopeBadge
-            businessId={businessId}
-            className="self-end sm:self-auto"
-          />
+          <div className="flex items-center gap-3 self-end sm:self-auto">
+            <BusinessScopeBadge businessId={businessId} />
 
-          <button
-            type="button"
-            onClick={handleRegenerate}
-            disabled={regenerating}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-800 bg-gray-900 px-4 py-3 text-sm font-bold text-gray-300 transition hover:border-gray-700 hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {regenerating ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <RefreshCw size={16} />
-            )}
-            {regenerating ? t.regenerating : t.regenerate}
-          </button>
+            <button
+              type="button"
+              onClick={handleOpenConfig}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-800 bg-gray-900 px-4 py-3 text-sm font-bold text-gray-300 transition hover:border-gray-700 hover:bg-gray-800"
+            >
+              {generating ? (
+                <>
+                  <Loader2 size={16} className="animate-spin text-blue-400" />
+                  <span>{t.generating}</span>
+                </>
+              ) : (
+                <>
+                  <Pencil size={16} />
+                  <span>{report ? t.regenerate : t.generate}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -630,6 +650,37 @@ const BusinessAnalysis = () => {
               <p className="font-semibold text-red-300">{t.operationFailed}</p>
               <p className="mt-1 text-sm text-gray-500">{error}</p>
             </div>
+          </div>
+        )}
+
+        {/* Status Indicators */}
+        {report && (
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <StatusBadge
+              icon={
+                isStaleReport
+                  ? AlertCircle
+                  : report?.cached
+                    ? Clock
+                    : CheckCircle2
+              }
+              className={
+                isStaleReport
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                  : undefined
+              }
+              label={
+                isStaleReport
+                  ? t.needsRegeneration
+                  : report?.cached
+                    ? t.cached
+                    : t.generated
+              }
+            />
+
+            <span className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-1.5 text-xs font-semibold text-gray-500">
+              {t.version} {report?.version ?? "1"}
+            </span>
           </div>
         )}
 
@@ -645,7 +696,7 @@ const BusinessAnalysis = () => {
               </h2>
             </div>
             <div className="hidden rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-500 sm:block">
-              Version {report?.version}
+              Version {report?.version || "1"}
             </div>
           </div>
           <div className="max-h-[600px] overflow-y-auto rounded-xl border border-gray-800 bg-gray-950/70 p-5">
@@ -758,199 +809,336 @@ const BusinessAnalysis = () => {
           </div>
         )}
       </div>
+
+      {/* Configuration Modal */}
+      {showConfigModal && (
+        <AnalysisConfigModal
+          business={businessData}
+          initialRadius={
+            report?.raw_evidence?.population?.data?.radius_km || 10
+          }
+          onClose={() => setShowConfigModal(false)}
+          onSubmit={handleExecuteAnalysis}
+          loading={generating}
+          isRegenerate={Boolean(report)}
+          t={t}
+        />
+      )}
     </div>
   );
 };
 
-const GenerationPage = ({
+const StatusBadge = ({ icon: Icon, label, className }) => (
+  <div
+    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+      className || "border-gray-800 bg-gray-900 text-gray-400"
+    }`}
+  >
+    <Icon size={13} />
+    {label}
+  </div>
+);
+
+const AnalysisConfigModal = ({
   business,
-  radiusKm,
-  onRadiusChange,
-  onSubmit,
+  initialRadius = 10,
   onClose,
+  onSubmit,
   loading,
-  error,
+  isRegenerate,
   t,
 }) => {
-  const navigate = useNavigate();
-  const { businessId } = useParams();
+  const [radiusKm, setRadiusKm] = useState(String(initialRadius));
+  const [form, setForm] = useState({
+    name: business?.business_name || "",
+    description: business?.description || "",
+    village: business?.village || "",
+    district: business?.district || "",
+    city: business?.city || "",
+    state: business?.state || "",
+    country: business?.country || "",
+    pincode: business?.pincode || "",
+    margin_capital:
+      business?.margin_capital != null ? String(business?.margin_capital) : "",
+  });
 
-  const locationText = [
-    business?.village,
-    business?.city,
-    business?.district,
-    business?.state,
-    business?.country,
-    business?.pincode,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const updatedFields = {};
+    if (form.name.trim() !== (business?.business_name || "")) {
+      updatedFields.name = form.name.trim();
+    }
+    if (form.description.trim() !== (business?.description || "")) {
+      updatedFields.description = form.description.trim();
+    }
+    if (form.village.trim() !== (business?.village || "")) {
+      updatedFields.village = form.village.trim();
+    }
+    if (form.district.trim() !== (business?.district || "")) {
+      updatedFields.district = form.district.trim();
+    }
+    if (form.city.trim() !== (business?.city || "")) {
+      updatedFields.city = form.city.trim();
+    }
+    if (form.state.trim() !== (business?.state || "")) {
+      updatedFields.state = form.state.trim();
+    }
+    if (form.country.trim() !== (business?.country || "")) {
+      updatedFields.country = form.country.trim();
+    }
+    if (form.pincode.trim() !== (business?.pincode || "")) {
+      updatedFields.pincode = form.pincode.trim();
+    }
+    if (
+      Number(form.margin_capital || 0) !== Number(business?.margin_capital || 0)
+    ) {
+      updatedFields.margin_capital = Number(form.margin_capital || 0);
+    }
+
+    onSubmit({
+      updatedFields,
+      radiusKm: Number(radiusKm) || 10,
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-gray-950 px-4 py-8 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-2xl">
-        <button
-          type="button"
-          onClick={onClose}
-          className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-gray-400 transition hover:text-white"
-        >
-          <ArrowLeft size={16} />
-          {t.backWorkspace}
-        </button>
-
-        <div className="rounded-3xl border border-gray-800 bg-gray-900/60 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-          <div className="mb-6 flex items-start justify-between gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
-              <Sparkles className="text-blue-400" size={26} />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative max-h-[92vh] w-full max-w-2xl overflow-hidden rounded-3xl border border-gray-800 bg-gray-900 shadow-2xl">
+        <div className="flex items-start justify-between border-b border-gray-800 px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10">
+              <Sparkles className="text-blue-400" size={22} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-blue-400">
-                {t.aiBusinessIntelligence}
-              </p>
-              <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">
-                {t.generateBusinessAnalysis}
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-gray-500">
+              <h2 className="text-xl font-bold text-white">
+                {isRegenerate ? t.regenerate : t.generateBusinessAnalysis}
+              </h2>
+              <p className="mt-0.5 text-xs text-gray-400">
                 {t.generationDescription}
               </p>
             </div>
-            <BusinessScopeBadge businessId={businessId} className="shrink-0" />
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-800 hover:text-white"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-          {/* Active Generation State Notice */}
+        <form
+          onSubmit={handleSubmit}
+          className="max-h-[calc(92vh-140px)] space-y-6 overflow-y-auto p-6"
+        >
           {loading && (
-            <div className="mb-6 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-5">
+            <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 p-4">
               <div className="flex items-start gap-3">
                 <Clock className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
-                <div>
-                  <h3 className="text-sm font-bold text-blue-300">
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-blue-300">
                     {t.longRunningNoticeTitle}
-                  </h3>
+                  </h4>
                   <p className="mt-1 text-xs leading-5 text-gray-300">
                     {t.longRunningNoticeText}
                   </p>
                   <button
                     type="button"
-                    onClick={() => navigate(`/businesses/${businessId}`)}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-500"
+                    onClick={onClose}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-blue-500/40 bg-blue-600/30 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-600"
                   >
-                    <ArrowLeft size={14} />
-                    {t.continueWorkspace}
+                    <X size={14} />
+                    {t.dismissModalNotice}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {error && (
-            <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
-              <div>
-                <p className="font-semibold text-red-300">
-                  {t.generationFailed}
-                </p>
-                <p className="mt-1 text-sm text-gray-500">{error}</p>
-              </div>
+          <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 p-4">
+            <label className="mb-2 block text-sm font-semibold text-blue-300">
+              {t.analysisRadius}
+            </label>
+            <div className="relative">
+              <LocateFixed
+                size={16}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+              />
+              <input
+                type="number"
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(e.target.value)}
+                min="0.5"
+                step="0.5"
+                disabled={loading}
+                required
+                className="w-full rounded-xl border border-gray-700 bg-gray-950 py-2.5 pl-10 pr-12 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-60"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-500">
+                km
+              </span>
             </div>
-          )}
+            <p className="mt-2 text-xs text-gray-400">{t.radiusDescription}</p>
+          </div>
 
-          {/* Business Details Overview */}
-          <div className="mb-6 rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-blue-400">
+          <div>
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-400">
               {t.businessInformation}
-            </h2>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between border-b border-gray-800/80 pb-2">
-                <span className="text-gray-500">Business Name</span>
-                <span className="font-semibold text-gray-200">
-                  {business?.business_name || "—"}
-                </span>
+            </h3>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-medium text-gray-400">
+                  Business Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                  className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3.5 py-2 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-60"
+                />
               </div>
-              <div className="flex justify-between border-b border-gray-800/80 pb-2">
-                <span className="text-gray-500">Category</span>
-                <span className="font-semibold text-gray-200">
-                  {business?.category || "—"}
-                </span>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-400">
+                  Category (Locked)
+                </label>
+                <input
+                  type="text"
+                  value={business?.category || ""}
+                  disabled
+                  className="w-full cursor-not-allowed rounded-xl border border-gray-800 bg-gray-950/40 px-3.5 py-2 text-sm text-gray-600"
+                />
               </div>
-              <div className="flex justify-between border-b border-gray-800/80 pb-2">
-                <span className="text-gray-500">Location</span>
-                <span className="max-w-[65%] text-right font-semibold text-gray-200">
-                  {locationText || "—"}
-                </span>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-400">
+                  Margin Capital (₹)
+                </label>
+                <input
+                  type="number"
+                  name="margin_capital"
+                  value={form.margin_capital}
+                  onChange={handleChange}
+                  disabled={loading}
+                  className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3.5 py-2 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-60"
+                />
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Available Capital</span>
-                <span className="font-semibold text-gray-200">
-                  ₹
-                  {Number(business?.margin_capital || 0).toLocaleString(
-                    "en-IN",
-                  )}
-                </span>
+
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-medium text-gray-400">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  rows={3}
+                  disabled={loading}
+                  className="w-full resize-none rounded-xl border border-gray-800 bg-gray-950 px-3.5 py-2 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-400">
+                  City
+                </label>
+                <input
+                  type="text"
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  disabled={loading}
+                  className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3.5 py-2 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-400">
+                  District
+                </label>
+                <input
+                  type="text"
+                  name="district"
+                  value={form.district}
+                  onChange={handleChange}
+                  disabled={loading}
+                  className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3.5 py-2 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-400">
+                  State
+                </label>
+                <input
+                  type="text"
+                  name="state"
+                  value={form.state}
+                  onChange={handleChange}
+                  disabled={loading}
+                  className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3.5 py-2 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-400">
+                  Pincode
+                </label>
+                <input
+                  type="text"
+                  name="pincode"
+                  value={form.pincode}
+                  onChange={handleChange}
+                  disabled={loading}
+                  className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3.5 py-2 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-60"
+                />
               </div>
             </div>
           </div>
 
-          {/* Parameter Configuration */}
-          <form onSubmit={onSubmit}>
-            <div className="mb-6 rounded-2xl border border-gray-800 bg-gray-950/40 p-5">
-              <label className="mb-2 block text-sm font-semibold text-gray-300">
-                {t.analysisRadius}
-              </label>
-              <div className="relative">
-                <LocateFixed
-                  size={16}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600"
-                />
-                <input
-                  type="number"
-                  name="radius_km"
-                  value={radiusKm}
-                  onChange={onRadiusChange}
-                  min="0.5"
-                  step="0.5"
-                  disabled={loading}
-                  required
-                  className="w-full rounded-xl border border-gray-800 bg-gray-950 py-3 pl-10 pr-12 text-sm text-white outline-none transition focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 disabled:opacity-50"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-600">
-                  km
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-gray-500">
-                {t.radiusDescription}
-              </p>
-            </div>
-
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={loading}
-                className="rounded-xl border border-gray-800 bg-gray-950 px-5 py-3 text-sm font-bold text-gray-400 transition hover:border-gray-700 hover:bg-gray-900 hover:text-white disabled:opacity-50"
-              >
-                {t.cancel}
-              </button>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/20 transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={17} className="animate-spin" />
-                    {t.generating}
-                  </>
-                ) : (
-                  <>
-                    <Play size={17} />
-                    {t.generate}
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="sticky bottom-0 -mx-6 -mb-6 flex justify-end gap-3 border-t border-gray-800 bg-gray-900/95 px-6 py-4 backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-gray-800 px-5 py-2.5 text-sm font-semibold text-gray-400 transition hover:bg-gray-800 hover:text-white"
+            >
+              {loading ? t.continueWorkspace : t.cancel}
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {t.generating}
+                </>
+              ) : (
+                <>
+                  <Play size={16} />
+                  {isRegenerate ? t.regenerate : t.generate}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

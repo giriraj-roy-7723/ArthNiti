@@ -1007,3 +1007,172 @@ async def get_chat_session(
         "created_at": session.created_at.isoformat() if session.created_at else None,
         "messages": response_messages,
     }
+
+
+from datetime import datetime, timezone
+
+
+def _is_stale(business_time: datetime | None, record_time: datetime | None) -> bool:
+    """
+    Returns True if:
+    1. The analysis record does not exist (record_time is None)
+    2. The business has been updated after the analysis record was generated/updated
+    """
+    if not record_time:
+        return True
+    if not business_time:
+        return False
+
+    # Normalize naive/aware datetimes to UTC comparison
+    b_time = (
+        business_time.astimezone(timezone.utc)
+        if business_time.tzinfo
+        else business_time.replace(tzinfo=timezone.utc)
+    )
+    r_time = (
+        record_time.astimezone(timezone.utc)
+        if record_time.tzinfo
+        else record_time.replace(tzinfo=timezone.utc)
+    )
+
+    return b_time > r_time
+
+
+# ---------------------------------------------------------------------------
+# 1. Check Feasibility / Business Analysis Staleness
+# ---------------------------------------------------------------------------
+@router.get("/businesses/{business_id}/report/status")
+async def check_business_report_status(
+    business_id: str,
+    entrepreneur: Enterpreneur = Depends(require_enterpreneur),
+    db: AsyncSession = Depends(get_db),
+):
+    business = await get_owned_business(business_id, entrepreneur, db)
+
+    result = await db.execute(
+        select(BusinessAnalysis)
+        .where(BusinessAnalysis.business_id == business_id)
+        .order_by(BusinessAnalysis.version.desc())
+        .limit(1)
+    )
+    analysis = result.scalar_one_or_none()
+
+    if not analysis:
+        return {
+            "business_id": business_id,
+            "exists": False,
+            "needs_regeneration": True,
+            "business_updated_at": (
+                business.updated_at.isoformat() if business.updated_at else None
+            ),
+            "analysis_updated_at": None,
+        }
+
+    analysis_time = getattr(analysis, "updated_at", None) or getattr(
+        analysis, "created_at", None
+    )
+    needs_regen = _is_stale(business.updated_at, analysis_time)
+
+    return {
+        "business_id": business_id,
+        "exists": True,
+        "analysis_id": analysis.id,
+        "version": analysis.version,
+        "needs_regeneration": needs_regen,
+        "business_updated_at": (
+            business.updated_at.isoformat() if business.updated_at else None
+        ),
+        "analysis_updated_at": analysis_time.isoformat() if analysis_time else None,
+    }
+
+
+# ---------------------------------------------------------------------------
+# 2. Check Government Schemes Profile Staleness
+# ---------------------------------------------------------------------------
+@router.get("/businesses/{business_id}/government-schemes/status")
+async def check_government_schemes_status(
+    business_id: str,
+    entrepreneur: Enterpreneur = Depends(require_enterpreneur),
+    db: AsyncSession = Depends(get_db),
+):
+    business = await get_owned_business(business_id, entrepreneur, db)
+
+    result = await db.execute(
+        select(BusinessProfile).where(BusinessProfile.business_id == business_id)
+    )
+    profile = result.scalar_one_or_none()
+
+    if not profile:
+        return {
+            "business_id": business_id,
+            "exists": False,
+            "needs_regeneration": True,
+            "business_updated_at": (
+                business.updated_at.isoformat() if business.updated_at else None
+            ),
+            "schemes_updated_at": None,
+        }
+
+    schemes_time = getattr(profile, "updated_at", None) or getattr(
+        profile, "created_at", None
+    )
+    needs_regen = _is_stale(business.updated_at, schemes_time)
+
+    return {
+        "business_id": business_id,
+        "exists": True,
+        "profile_id": profile.id,
+        "needs_regeneration": needs_regen,
+        "business_updated_at": (
+            business.updated_at.isoformat() if business.updated_at else None
+        ),
+        "schemes_updated_at": schemes_time.isoformat() if schemes_time else None,
+    }
+
+
+# ---------------------------------------------------------------------------
+# 3. Check Financial Analysis Staleness
+# ---------------------------------------------------------------------------
+@router.get("/businesses/{business_id}/finance/status")
+async def check_financial_analysis_status(
+    business_id: str,
+    entrepreneur: Enterpreneur = Depends(require_enterpreneur),
+    db: AsyncSession = Depends(get_db),
+):
+    business = await get_owned_business(business_id, entrepreneur, db)
+
+    result = await db.execute(
+        select(FinancialAnalysis)
+        .where(FinancialAnalysis.business_id == business_id)
+        .order_by(FinancialAnalysis.version.desc())
+        .limit(1)
+    )
+    analysis = result.scalar_one_or_none()
+
+    if not analysis:
+        return {
+            "business_id": business_id,
+            "exists": False,
+            "needs_regeneration": True,
+            "business_updated_at": (
+                business.updated_at.isoformat() if business.updated_at else None
+            ),
+            "finance_updated_at": None,
+        }
+
+    finance_time = getattr(analysis, "updated_at", None) or getattr(
+        analysis, "created_at", None
+    )
+    needs_regen = _is_stale(business.updated_at, finance_time)
+
+    return {
+        "business_id": business_id,
+        "exists": True,
+        "financial_analysis_id": analysis.id,
+        "version": analysis.version,
+        "needs_regeneration": needs_regen,
+        "business_updated_at": (
+            business.updated_at.isoformat() if business.updated_at else None
+        ),
+        "finance_updated_at": finance_time.isoformat() if finance_time else None,
+    }

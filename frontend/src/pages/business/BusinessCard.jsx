@@ -6,14 +6,28 @@ import {
   Loader2,
   MapPin,
   MoreVertical,
+  Pencil,
   X,
 } from "lucide-react";
 import BusinessImageGallery from "./BusinessImageGallery";
+import EditBusinessModal from "./EditBusinessModal";
 
-const BusinessCard = ({ business, t, onOpen, onUpdateStatus }) => {
+const BusinessCard = ({
+  business: initialBusiness,
+  t,
+  onOpen,
+  onUpdateStatus,
+}) => {
+  const [business, setBusiness] = useState(initialBusiness);
   const [menuOpen, setMenuOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const menuRef = useRef(null);
+
+  // Synchronize state if parent updates initialBusiness
+  useEffect(() => {
+    setBusiness(initialBusiness);
+  }, [initialBusiness]);
 
   const getStatusLabel = (status) => {
     if (!status) return "";
@@ -96,6 +110,13 @@ const BusinessCard = ({ business, t, onOpen, onUpdateStatus }) => {
     }
   };
 
+  const handleEditSuccess = (updatedBusiness) => {
+    if (updatedBusiness) {
+      setBusiness(updatedBusiness);
+    }
+    setShowEditModal(false);
+  };
+
   const isActive = business.status?.toLowerCase() === "active";
   const isCancelled = business.status?.toLowerCase() === "cancelled";
 
@@ -147,6 +168,23 @@ const BusinessCard = ({ business, t, onOpen, onUpdateStatus }) => {
                 </div>
 
                 <div className="p-1.5">
+                  {/* EDIT DETAILS TRIGGER */}
+                  <button
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.stopPropagation();
+                      setMenuOpen(false);
+                      setShowEditModal(true);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-gray-300 transition hover:bg-blue-500/10 hover:text-blue-400"
+                  >
+                    <Pencil size={16} />
+                    <span>Edit Details</span>
+                  </button>
+
+                  <div className="my-1 border-t border-gray-800" />
+
+                  {/* MARK ACTIVE */}
                   <button
                     type="button"
                     disabled={isActive || updatingStatus}
@@ -166,6 +204,7 @@ const BusinessCard = ({ business, t, onOpen, onUpdateStatus }) => {
                     )}
                   </button>
 
+                  {/* MARK CANCELLED */}
                   <button
                     type="button"
                     disabled={isCancelled || updatingStatus}
@@ -237,6 +276,15 @@ const BusinessCard = ({ business, t, onOpen, onUpdateStatus }) => {
           </div>
         </button>
       </div>
+
+      {/* Edit Modal Embedded Directly Inside Card */}
+      <EditBusinessModal
+        isOpen={showEditModal}
+        business={business}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={handleEditSuccess}
+        t={t}
+      />
     </div>
   );
 };

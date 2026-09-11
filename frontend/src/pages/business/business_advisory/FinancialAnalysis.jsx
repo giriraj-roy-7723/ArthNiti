@@ -45,6 +45,7 @@ const translations = {
       "Your Business Analysis is available. You can now generate the financial plan using the latest business evidence.",
     cached: "Cached result",
     generated: "Newly generated",
+    needsRegeneration: "Needs regeneration",
     translated: "Translated",
     english: "English",
     version: "Version",
@@ -99,6 +100,10 @@ const translations = {
     completeFirst:
       "You need a completed Business Analysis before generating a financial analysis.",
     generatedSuccessfully: "Financial analysis generated successfully.",
+    staleBannerTitle: "Business details have changed",
+    staleBannerDesc:
+      "This financial analysis was generated with older business information. Review your inputs and regenerate for current projections.",
+    reviewAndRegenerate: "Review & Regenerate",
   },
   hindi: {
     loading: "वित्तीय विश्लेषण लोड हो रहा है...",
@@ -123,6 +128,7 @@ const translations = {
       "आपका व्यवसाय विश्लेषण उपलब्ध है। अब नवीनतम व्यावसायिक जानकारी के आधार पर वित्तीय योजना बनाई जा सकती है।",
     cached: "कैश किया गया परिणाम",
     generated: "नया तैयार किया गया",
+    needsRegeneration: "दोबारा बनाने की आवश्यकता",
     translated: "अनुवादित",
     english: "अंग्रेज़ी",
     version: "संस्करण",
@@ -177,6 +183,10 @@ const translations = {
     completeFirst:
       "वित्तीय विश्लेषण बनाने से पहले व्यवसाय विश्लेषण पूरा करना आवश्यक है।",
     generatedSuccessfully: "वित्तीय विश्लेषण सफलतापूर्वक तैयार किया गया।",
+    staleBannerTitle: "व्यवसाय विवरण बदल गए हैं",
+    staleBannerDesc:
+      "यह वित्तीय विश्लेषण पुराने व्यवसाय विवरण के आधार पर तैयार किया गया था। वर्तमान अनुमान के लिए इनपुट की समीक्षा करें और दोबारा बनाएँ।",
+    reviewAndRegenerate: "समीक्षा करें और दोबारा बनाएँ",
   },
   bengali: {
     loading: "আর্থিক বিশ্লেষণ লোড হচ্ছে...",
@@ -200,6 +210,7 @@ const translations = {
       "আপনার ব্যবসায়িক বিশ্লেষণ উপলব্ধ। এখন সর্বশেষ ব্যবসায়িক তথ্য ব্যবহার করে আর্থিক পরিকল্পনা তৈরি করা যাবে।",
     cached: "ক্যাশ করা ফলাফল",
     generated: "নতুন তৈরি",
+    needsRegeneration: "পুনরায় তৈরি করা প্রয়োজন",
     translated: "অনূদিত",
     english: "ইংরেজি",
     version: "সংস্করণ",
@@ -254,6 +265,10 @@ const translations = {
     completeFirst:
       "আর্থিক বিশ্লেষণ তৈরি করার আগে ব্যবসায়িক বিশ্লেষণ সম্পূর্ণ করতে হবে।",
     generatedSuccessfully: "আর্থিক বিশ্লেষণ সফলভাবে তৈরি হয়েছে।",
+    staleBannerTitle: "ব্যবসার বিবরণ পরিবর্তিত হয়েছে",
+    staleBannerDesc:
+      "এই আর্থিক বিশ্লেষণটি পুরোনো ব্যবসার তথ্য দিয়ে তৈরি হয়েছিল। বর্তমান পূর্বাভাসে জন্য ইনপুট পর্যালোচনা করে আবার তৈরি করুন।",
+    reviewAndRegenerate: "পর্যালোচনা করুন ও আবার তৈরি করুন",
   },
 };
 
@@ -289,6 +304,7 @@ const FinancialAnalysis = () => {
   const [error, setError] = useState("");
   const [showGeneration, setShowGeneration] = useState(false);
   const [isRegeneration, setIsRegeneration] = useState(false);
+  const [needsRegeneration, setNeedsRegeneration] = useState(false);
 
   const fetchBusiness = async () => {
     const response = await api.get(`/businesses/${businessId}`);
@@ -307,6 +323,24 @@ const FinancialAnalysis = () => {
     }
   };
 
+  const checkFinanceStatus = async () => {
+    try {
+      const response = await aiApi.get(
+        `api/v1/businesses/${businessId}/finance/status`,
+      );
+      const data = response?.data || response;
+      const isStale = Boolean(data?.needs_regeneration);
+      setNeedsRegeneration(isStale);
+      return isStale;
+    } catch (statusError) {
+      console.warn(
+        "Could not check financial analysis staleness status:",
+        statusError,
+      );
+      return false;
+    }
+  };
+
   const loadFinance = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
@@ -316,9 +350,16 @@ const FinancialAnalysis = () => {
         `api/v1/businesses/${businessId}/finance?language=${languageCode}`,
       );
 
-      setAnalysis(response.data || response);
+      const result = response.data || response;
+      setAnalysis(result);
       setShowGeneration(false);
       setIsRegeneration(false);
+
+      // Check status API and fall back to analysis object if provided
+      const isStale = await checkFinanceStatus();
+      if (!isStale && Boolean(result?.needs_regeneration)) {
+        setNeedsRegeneration(true);
+      }
     } catch (err) {
       if (err?.response?.status === 404) {
         const businessData = await fetchBusiness();
@@ -348,6 +389,7 @@ const FinancialAnalysis = () => {
 
     return () => {
       setAnalysis(null);
+      setNeedsRegeneration(false);
     };
   }, [businessId, languageCode]);
 
@@ -381,6 +423,7 @@ const FinancialAnalysis = () => {
       setAnalysis(response.data || response);
       setShowGeneration(false);
       setIsRegeneration(false);
+      setNeedsRegeneration(false);
     } catch (err) {
       setError(
         err?.response?.data?.detail || err?.message || t.operationFailed,
@@ -424,6 +467,10 @@ const FinancialAnalysis = () => {
 
   const plan =
     analysis?.financial_plan_payload || analysis?.raw_financial_plan || {};
+
+  const isStaleReport = Boolean(
+    needsRegeneration || analysis?.needs_regeneration,
+  );
 
   const initialInputs = {
     margin: plan?.used_values?.margin_capital ?? business?.margin_capital ?? 0,
@@ -510,6 +557,30 @@ const FinancialAnalysis = () => {
           {t.backWorkspace}
         </button>
 
+        {isStaleReport && !generating && (
+          <div className="mb-6 flex flex-col items-start justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 shadow-lg backdrop-blur-md sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-300">
+                  {t.staleBannerTitle}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-gray-300">
+                  {t.staleBannerDesc}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleStartRegenerate}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-bold text-gray-950 transition hover:bg-amber-400"
+            >
+              <RefreshCw size={14} />
+              {t.reviewAndRegenerate}
+            </button>
+          </div>
+        )}
+
         <div className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
@@ -558,8 +629,25 @@ const FinancialAnalysis = () => {
 
         <div className="mb-6 flex flex-wrap items-center gap-2">
           <StatusBadge
-            icon={analysis?.cached ? Clock : CheckCircle2}
-            label={analysis?.cached ? t.cached : t.generated}
+            icon={
+              isStaleReport
+                ? AlertCircle
+                : analysis?.cached
+                  ? Clock
+                  : CheckCircle2
+            }
+            className={
+              isStaleReport
+                ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                : undefined
+            }
+            label={
+              isStaleReport
+                ? t.needsRegeneration
+                : analysis?.cached
+                  ? t.cached
+                  : t.generated
+            }
           />
 
           {analysis?.translated && (
@@ -588,8 +676,12 @@ const FinancialAnalysis = () => {
   );
 };
 
-const StatusBadge = ({ icon: Icon, label }) => (
-  <div className="inline-flex items-center gap-1.5 rounded-lg border border-gray-800 bg-gray-900 px-3 py-1.5 text-xs font-semibold text-gray-400">
+const StatusBadge = ({ icon: Icon, label, className }) => (
+  <div
+    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+      className || "border-gray-800 bg-gray-900 text-gray-400"
+    }`}
+  >
     <Icon size={13} />
     {label}
   </div>

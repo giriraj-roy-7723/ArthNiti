@@ -430,6 +430,7 @@ async def generate_report(
             radius_km=request.radius_km,
             language=request.language,
         )
+        # result = []
     except Exception as e:
         await db.rollback()
         raise HTTPException(

@@ -180,6 +180,8 @@ async def signup_user(data, language: str, db: AsyncSession):
     if not verified:
         raise HTTPException(status_code=400, detail="Email not verified")
 
+
+    data.email = data.email.strip().lower()
     lang_code = LANG_NORMALIZER[language.strip().lower()]
 
     result = await db.execute(select(User).where(User.email == data.email))
@@ -289,6 +291,7 @@ async def signup_user(data, language: str, db: AsyncSession):
 async def login_user(data, language: str, db: AsyncSession):
 
     lang_code = LANG_NORMALIZER[language.strip().lower()]
+    data.email = data.email.strip().lower()
 
     result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()

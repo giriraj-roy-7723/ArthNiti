@@ -7,6 +7,7 @@ from src.controllers.business_controller import (
     get_business,
     get_my_business_ids,
     mark_business_state,
+    update_business,
     search_businesses,
     search_other_businesses,
     get_active_businesses,
@@ -22,6 +23,7 @@ from src.models.business_request import (
     BusinessOwnerContactResponse,
     BusinessImagesResponse,
     BusinessImagesUpdateRequest,
+    BusinessUpdateRequest
 )
 from src.schema.business import BusinessStatus
 
@@ -310,6 +312,24 @@ async def clear_business_images_route(
         db=db,
     )
 
+
+
+
+@router.patch("/{business_id}/update", response_model=BusinessResponse)
+async def patch_business(
+    business_id: str,
+    data: BusinessUpdateRequest,
+    accept_language: str = Header(default="en"),
+    user_id: str = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_business(
+        business_id=business_id,
+        owner_id=user_id,
+        data=data,
+        language=accept_language,
+        db=db,
+    )
 
 @router.get(
     "/{business_id}",

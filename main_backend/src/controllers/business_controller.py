@@ -13,6 +13,7 @@ from src.models.business_request import (
     BusinessImagesUpdateRequest,
     BusinessResponse,
     BusinessOwnerContactResponse,
+    BusinessUpdateRequest,
 )
 
 from src.utils.translator_utils import translate_entry
@@ -545,6 +546,159 @@ async def mark_business_state(
     )
 
 
+async def update_business(
+    business_id: str,
+    owner_id: str,
+    data: BusinessUpdateRequest,
+    language: str,
+    db: AsyncSession,
+) -> BusinessResponse:
+    lang_code = normalize_language(language)
+
+    # 1. Fetch the business belonging to the caller
+    result = await db.execute(
+        select(Business).where(
+            Business.id == business_id,
+            Business.owner_id == owner_id,
+        )
+    )
+    business = result.scalar_one_or_none()
+
+    if not business:
+        raise HTTPException(
+            status_code=404,
+            detail="Business not found",
+        )
+
+    has_changes = False
+
+    # 2. Check and isolate genuinely modified multilingual fields
+    multilingual_inputs = {
+        "business_name": data.name,
+        "description": data.description,
+        "village": data.village,
+        "district": data.district,
+        "city": data.city,
+        "state": data.state,
+        "country": data.country,
+    }
+
+    updated_multilingual_fields = {}
+    for field, val in multilingual_inputs.items():
+        if val is not None and val.strip() != "":
+            stripped_val = val.strip()
+            current_field_dict = getattr(business, field, None) or {}
+            existing_val = current_field_dict.get(lang_code, "")
+
+            # Only mark as updated if value actually differs from DB
+            if existing_val != stripped_val:
+                updated_multilingual_fields[field] = stripped_val
+
+    if updated_multilingual_fields:
+        has_changes = True
+
+        # Purge old translations ONLY for the fields being modified
+        for field, new_val in updated_multilingual_fields.items():
+            setattr(business, field, {lang_code: new_val})
+
+        await db.flush()
+
+        # Re-translate ONLY the modified fields to all other supported languages
+        all_other_languages = {"en", "bn", "hi"} - {lang_code}
+        source_entry = {k: v for k, v in updated_multilingual_fields.items()}
+
+        for target_lang in all_other_languages:
+            try:
+                translated_entry = await asyncio.to_thread(
+                    translate_entry,
+                    entry=source_entry,
+                    target_language=target_lang,
+                    source_language=lang_code,
+                )
+
+                for field, trans_val in (translated_entry or {}).items():
+                    if trans_val is not None:
+                        current_dict = dict(getattr(business, field, None) or {})
+                        current_dict[target_lang] = trans_val
+                        setattr(business, field, current_dict)
+
+            except Exception as exc:
+                print(f"Translation warning for {target_lang}: {exc}")
+
+        await db.flush()
+
+    # 3. Handle Coordinates & Location Updates
+    location_fields_touched = any(
+        k in updated_multilingual_fields
+        for k in ["city", "district", "state", "country"]
+    )
+
+    explicit_coords_passed = data.latitude is not None and data.longitude is not None
+    coords_changed = explicit_coords_passed and (
+        business.latitude != data.latitude or business.longitude != data.longitude
+    )
+
+    if coords_changed:
+        business.latitude = data.latitude
+        business.longitude = data.longitude
+        has_changes = True
+    elif (not explicit_coords_passed) and (
+        location_fields_touched
+        or (business.latitude is None and business.longitude is None)
+    ):
+        city = (business.city or {}).get(lang_code) or ""
+        district = (business.district or {}).get(lang_code) or ""
+        state = (business.state or {}).get(lang_code) or ""
+        country = (business.country or {}).get(lang_code) or ""
+
+        location_parts = [city, district, state, country]
+        location = ", ".join(
+            part.strip() for part in location_parts if part and part.strip()
+        )
+
+        if location:
+            try:
+                lat, lon = await asyncio.to_thread(get_coordinates, location)
+                if business.latitude != lat or business.longitude != lon:
+                    business.latitude = lat
+                    business.longitude = lon
+                    has_changes = True
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Unable to geocode business location",
+                ) from exc
+
+    # 4. Handle Non-multilingual Scalars
+    if (
+        data.margin_capital is not None
+        and business.margin_capital != data.margin_capital
+    ):
+        business.margin_capital = data.margin_capital
+        has_changes = True
+
+    if data.pincode is not None:
+        new_pincode = data.pincode.strip() if data.pincode else None
+        if business.pincode != new_pincode:
+            business.pincode = new_pincode
+            has_changes = True
+
+    # 5. Commit changes to DB only if something actually changed
+    if has_changes:
+        try:
+            await db.commit()
+            await db.refresh(business)
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail="Unable to update business details",
+            )
+
+    return _build_business_response(business, lang_code)
+
 
 async def get_business_images(
     business_id: str,
@@ -618,7 +772,6 @@ async def clear_business_images(
     return BusinessImagesResponse(business_id=business.id, image_urls=[])
 
 
-
 def _build_business_response(business: Business, lang_code: str) -> BusinessResponse:
     return BusinessResponse(
         id=business.id,
@@ -640,9 +793,11 @@ def _build_business_response(business: Business, lang_code: str) -> BusinessResp
         updated_at=business.updated_at,
     )
 
+
 # ===========================================================================
 # HELPER: FUZZY + MULTILINGUAL JSONB FILTER BUILDER
 # ===========================================================================
+
 
 def _build_multilingual_fuzzy_filter(
     jsonb_column,
@@ -830,6 +985,7 @@ async def search_businesses(
     sorted_entries.sort(key=lambda item: item[0])
     return [item[1] for item in sorted_entries]
 
+
 # ===========================================================================
 # 2. SEARCH OTHER BUSINESSES (PUBLIC / EXPLORE SEARCH)
 # ===========================================================================
@@ -981,7 +1137,6 @@ async def search_other_businesses(
 
     await db.commit()
     return responses
-
 
 
 async def get_active_businesses(
