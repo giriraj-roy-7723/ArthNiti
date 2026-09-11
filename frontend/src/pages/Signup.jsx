@@ -20,6 +20,8 @@ import {
   ChevronDown,
   CheckCircle2,
   ShieldCheck,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 import { Country, State, City } from "country-state-city";
@@ -38,7 +40,12 @@ const InputField = ({
   value,
   onChange,
   disabled = false,
+  isPassword = false,
+  showPassword = false,
+  onTogglePassword,
 }) => {
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
   return (
     <div>
       <label
@@ -46,7 +53,6 @@ const InputField = ({
         className="block text-sm font-medium text-gray-300 mb-2"
       >
         {label}
-
         {required && <span className="text-red-400 ml-1">*</span>}
       </label>
 
@@ -59,7 +65,7 @@ const InputField = ({
 
         <input
           id={name}
-          type={type}
+          type={inputType}
           name={name}
           required={required}
           value={value}
@@ -69,7 +75,7 @@ const InputField = ({
           className={`
             w-full
             ${Icon ? "pl-12" : "pl-4"}
-            pr-4
+            ${isPassword ? "pr-12" : "pr-4"}
             py-3
             bg-gray-950/70
             border
@@ -88,6 +94,22 @@ const InputField = ({
             disabled:cursor-not-allowed
           `}
         />
+
+        {isPassword && (
+          <button
+            type="button"
+            onClick={onTogglePassword}
+            tabIndex={-1}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-blue-400 transition-colors focus:outline-none"
+          >
+            {showPassword ? (
+              <EyeOff className="h-5 w-5" />
+            ) : (
+              <Eye className="h-5 w-5" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -114,7 +136,6 @@ const SelectField = ({
         className="block text-sm font-medium text-gray-300 mb-2"
       >
         {label}
-
         {required && <span className="text-red-400 ml-1">*</span>}
       </label>
 
@@ -203,7 +224,8 @@ const Signup = () => {
     last_name: "",
     email: "",
     password: "",
-    role: "enterpreneur", // internal value stays constant
+    confirm_password: "",
+    role: "enterpreneur",
 
     phone_number: "",
     country_code: "+91",
@@ -220,6 +242,9 @@ const Signup = () => {
     agency_type: "sca",
     agency_name: "",
   });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -243,6 +268,7 @@ const Signup = () => {
       networkErr:
         "Unable to reach the backend. Start the API on port 8000 and try again.",
       signupErr: "Something went wrong during signup",
+      passwordMismatch: "Passwords do not match",
       creatingBtn: "Creating Account...",
       createBtn: "Create Account",
       terms: "By creating an account, you agree to our terms and conditions.",
@@ -258,6 +284,8 @@ const Signup = () => {
       emailPlaceholder: "you@example.com",
       password: "Password",
       passPlaceholder: "Create a strong password",
+      confirmPassword: "Re-enter Password",
+      confirmPassPlaceholder: "Confirm your password",
       sec2Title: "Account Type",
       sec2Desc: "Select how you will use the platform",
       roleEnt: "Entrepreneur",
@@ -313,6 +341,7 @@ const Signup = () => {
       networkErr:
         "बैकएंड तक पहुँचने में असमर्थ। पोर्ट 8000 पर API शुरू करें और पुनः प्रयास करें।",
       signupErr: "साइनअप के दौरान कुछ गलत हो गया",
+      passwordMismatch: "पासवर्ड मेल नहीं खाते हैं",
       creatingBtn: "खाता बनाया जा रहा है...",
       createBtn: "खाता बनाएं",
       terms: "खाता बनाकर, आप हमारी नियमों और शर्तों से सहमत होते हैं।",
@@ -328,6 +357,8 @@ const Signup = () => {
       emailPlaceholder: "you@example.com",
       password: "पासवर्ड",
       passPlaceholder: "एक मजबूत पासवर्ड बनाएं",
+      confirmPassword: "पासवर्ड पुनः दर्ज करें",
+      confirmPassPlaceholder: "अपने पासवर्ड की पुष्टि करें",
       sec2Title: "खाता प्रकार",
       sec2Desc: "चुनें कि आप प्लेटफ़ॉर्म का उपयोग कैसे करेंगे",
       roleEnt: "उद्यमी",
@@ -383,6 +414,7 @@ const Signup = () => {
       networkErr:
         "ব্যাকএন্ডে পৌঁছাতে অক্ষম। পোর্ট 8000-এ API চালু করুন এবং আবার চেষ্টা করুন।",
       signupErr: "সাইনআপের সময় কিছু ভুল হয়েছে",
+      passwordMismatch: "পাসওয়ার্ড দুটি মেলেনি",
       creatingBtn: "অ্যাকাউন্ট তৈরি করা হচ্ছে...",
       createBtn: "অ্যাকাউন্ট তৈরি করুন",
       terms: "অ্যাকাউন্ট তৈরি করে, আপনি আমাদের শর্তাবলীতে সম্মত হচ্ছেন।",
@@ -398,6 +430,8 @@ const Signup = () => {
       emailPlaceholder: "you@example.com",
       password: "পাসওয়ার্ড",
       passPlaceholder: "একটি শক্তিশালী পাসওয়ার্ড তৈরি করুন",
+      confirmPassword: "পাসওয়ার্ড পুনরায় লিখুন",
+      confirmPassPlaceholder: "আপনার পাসওয়ার্ড নিশ্চিত করুন",
       sec2Title: "অ্যাকাউন্টের ধরন",
       sec2Desc: "আপনি কীভাবে প্ল্যাটফর্মটি ব্যবহার করবেন তা নির্বাচন করুন",
       roleEnt: "উদ্যোক্তা",
@@ -581,6 +615,11 @@ const Signup = () => {
       return;
     }
 
+    if (formData.password !== formData.confirm_password) {
+      setError(t.passwordMismatch);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -591,6 +630,7 @@ const Signup = () => {
       };
 
       delete payload.country_code;
+      delete payload.confirm_password;
 
       const res = await api.post(
         `/auth/signup?language=${encodeURIComponent(language)}`,
@@ -689,10 +729,7 @@ const Signup = () => {
                         disabled={emailVerified}
                       />
 
-                      {/* ============================================ */}
-                      {/* EMAIL VERIFICATION BLOCK                      */}
-                      {/* ============================================ */}
-
+                      {/* EMAIL VERIFICATION BLOCK */}
                       <div className="mt-3">
                         {emailVerified ? (
                           <div className="flex items-center gap-2 text-sm text-green-400">
@@ -809,9 +846,7 @@ const Signup = () => {
                             )}
 
                             {otpError && (
-                              <p className="text-xs text-red-400">
-                                {otpError}
-                              </p>
+                              <p className="text-xs text-red-400">{otpError}</p>
                             )}
                           </div>
                         )}
@@ -822,10 +857,26 @@ const Signup = () => {
                       name="password"
                       label={t.password}
                       placeholder={t.passPlaceholder}
-                      type="password"
                       icon={Lock}
                       value={formData.password}
                       onChange={handleChange}
+                      isPassword={true}
+                      showPassword={showPassword}
+                      onTogglePassword={() => setShowPassword(!showPassword)}
+                    />
+
+                    <InputField
+                      name="confirm_password"
+                      label={t.confirmPassword}
+                      placeholder={t.confirmPassPlaceholder}
+                      icon={Lock}
+                      value={formData.confirm_password}
+                      onChange={handleChange}
+                      isPassword={true}
+                      showPassword={showConfirmPassword}
+                      onTogglePassword={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                     />
                   </div>
                 </section>
@@ -853,11 +904,11 @@ const Signup = () => {
                         title: t.roleBuyer,
                         description: t.roleBuyerDesc,
                       },
-                      {
-                        value: "government",
-                        title: t.roleGov,
-                        description: t.roleGovDesc,
-                      },
+                      // {
+                      //   value: "government",
+                      //   title: t.roleGov,
+                      //   description: t.roleGovDesc,
+                      // },
                     ].map((role) => (
                       <label
                         key={role.value}
@@ -917,7 +968,7 @@ const Signup = () => {
                 </section>
 
                 {/* ====================================================== */}
-                {/* CONTACT INFORMATION                                     */}
+                {/* CONTACT INFORMATION                                    */}
                 {/* ====================================================== */}
 
                 <section className="py-8 border-b border-gray-800">
@@ -990,7 +1041,7 @@ const Signup = () => {
                 </section>
 
                 {/* ====================================================== */}
-                {/* GOVERNMENT INFORMATION                                  */}
+                {/* GOVERNMENT INFORMATION                                 */}
                 {/* ====================================================== */}
 
                 {formData.role === "government" && (
