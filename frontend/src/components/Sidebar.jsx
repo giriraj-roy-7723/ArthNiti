@@ -27,7 +27,7 @@ const Sidebar = () => {
 
   const translations = {
     english: {
-      finance: "Finance",
+      brand: "ArthNiti",
       home: "Home",
       login: "Login",
       signup: "Sign Up",
@@ -42,7 +42,7 @@ const Sidebar = () => {
       logout: "Log Out",
     },
     hindi: {
-      finance: "वित्त",
+      brand: "अर्थनीति",
       home: "होम",
       login: "लॉग इन",
       signup: "साइन अप",
@@ -57,7 +57,7 @@ const Sidebar = () => {
       logout: "लॉग आउट",
     },
     bengali: {
-      finance: "অর্থ",
+      brand: "অর্থনীতি",
       home: "হোম",
       login: "লগইন",
       signup: "সাইন আপ",
@@ -121,17 +121,22 @@ const Sidebar = () => {
 
           <div className="p-6 relative z-10 overflow-y-auto">
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-3 transform preserve-3d hover:rotate-y-12 transition-transform duration-500">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_10px_20px_rgba(37,99,235,0.4)] translate-z-10 border-t border-l border-white/20">
-                  <span className="text-white font-bold text-xl drop-shadow-md">
-                    F
-                  </span>
+              <Link
+                to="/"
+                className="flex items-center space-x-3 transform preserve-3d hover:rotate-y-12 transition-transform duration-500"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-600/20 p-2 flex items-center justify-center shadow-[0_10px_20px_rgba(37,99,235,0.25)] translate-z-10 border border-blue-500/30">
+                  <img
+                    src="/icon.svg"
+                    alt="ArthNiti Logo"
+                    className="w-full h-full object-contain drop-shadow-md"
+                  />
                 </div>
 
                 <h1 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-gray-400 drop-shadow-sm translate-z-6">
-                  {t.finance}
+                  {t.brand}
                 </h1>
-              </div>
+              </Link>
 
               <button
                 type="button"
