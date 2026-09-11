@@ -13,6 +13,7 @@
 
 // export default MainLayout;
 import Sidebar from "../components/Sidebar";
+import OnboardingChatbot from "../components/OnboardingChatbot";
 
 const MainLayout = ({ children }) => {
   return (
@@ -20,6 +21,7 @@ const MainLayout = ({ children }) => {
       <Sidebar />
       {/* Added w-full and min-w-0 */}
       <main className="flex-1 w-full min-w-0 overflow-y-auto">{children}</main>
+      <OnboardingChatbot />
     </div>
   );
 };
