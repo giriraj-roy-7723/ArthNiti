@@ -221,8 +221,7 @@ const translations = {
     uploadingImages: "अपलोड हो रहा है...",
     imagesLoadFailed: "व्यवसाय की तस्वीरें लोड नहीं हो सकीं।",
     editBusinessDetails: "व्यवसाय विवरण संपादित करें",
-    editBusinessDescription:
-      "इस व्यवसाय की जानकारी और भौतिक स्थान अपडेट करें।",
+    editBusinessDescription: "इस व्यवसाय की जानकारी और भौतिक स्थान अपडेट करें।",
     updateLocationFromProfile: "प्रोफ़ाइल पते से स्थान अपडेट करें?",
     customLocation: "कस्टम स्थान रखें या दर्ज करें",
     customLocationDescription: "नीचे स्थान के फ़ील्ड अलग-अलग संपादित करें",
@@ -331,7 +330,8 @@ const translations = {
     editBusinessDescription: "এই ব্যবসার তথ্য ও অবস্থান আপডেট করুন।",
     updateLocationFromProfile: "প্রোফাইলের ঠিকানা থেকে অবস্থান আপডেট করবেন?",
     customLocation: "নিজস্ব অবস্থান রাখুন বা লিখুন",
-    customLocationDescription: "নিচে অবস্থানের ফিল্ডগুলি আলাদাভাবে সম্পাদনা করুন",
+    customLocationDescription:
+      "নিচে অবস্থানের ফিল্ডগুলি আলাদাভাবে সম্পাদনা করুন",
     categoryNotEditable: "পরিবর্তন করা যাবে না",
     manualLocation: "ব্যবসার অবস্থান ম্যানুয়ালি লিখুন",
     editDetails: "বিবরণ সম্পাদনা করুন",

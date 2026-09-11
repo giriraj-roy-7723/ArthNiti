@@ -387,53 +387,54 @@ const BusinessImageGallery = ({
   errorLabel = "Unable to load business images.",
 }) => {
   const { language } = useLanguage();
-  const galleryText = {
-    english: {
-      maxImages: (count) => `Maximum limit is ${count} images total.`,
-      imageOnly: "Please select image files only.",
-      imageFile: "Please select an image file.",
-      replaceFailed: "Failed to replace image.",
-      removeConfirm: "Are you sure you want to remove this image?",
-      removeFailed: "Failed to remove image.",
-      clearConfirm: "Are you sure you want to remove all images?",
-      clearFailed: "Failed to clear all images.",
-      removeAll: "Remove all images",
-      clearAll: "Clear All",
-      view: (label) => `View ${label}`,
-      replace: "Replace image",
-      delete: "Delete image",
-    },
-    hindi: {
-      maxImages: (count) => `कुल अधिकतम ${count} तस्वीरें हो सकती हैं।`,
-      imageOnly: "कृपया केवल तस्वीर फ़ाइलें चुनें।",
-      imageFile: "कृपया एक तस्वीर फ़ाइल चुनें।",
-      replaceFailed: "तस्वीर बदलना विफल रहा।",
-      removeConfirm: "क्या आप वाकई इस तस्वीर को हटाना चाहते हैं?",
-      removeFailed: "तस्वीर हटाना विफल रहा।",
-      clearConfirm: "क्या आप वाकई सभी तस्वीरें हटाना चाहते हैं?",
-      clearFailed: "सभी तस्वीरें हटाना विफल रहा।",
-      removeAll: "सभी तस्वीरें हटाएं",
-      clearAll: "सभी साफ़ करें",
-      view: (label) => `${label} देखें`,
-      replace: "तस्वीर बदलें",
-      delete: "तस्वीर हटाएं",
-    },
-    bengali: {
-      maxImages: (count) => `সর্বোচ্চ মোট ${count}টি ছবি হতে পারে।`,
-      imageOnly: "অনুগ্রহ করে শুধুমাত্র ছবির ফাইল নির্বাচন করুন।",
-      imageFile: "অনুগ্রহ করে একটি ছবির ফাইল নির্বাচন করুন।",
-      replaceFailed: "ছবি পরিবর্তন করা যায়নি।",
-      removeConfirm: "আপনি কি নিশ্চিত যে এই ছবিটি সরাতে চান?",
-      removeFailed: "ছবি সরানো যায়নি।",
-      clearConfirm: "আপনি কি নিশ্চিত যে সব ছবি সরাতে চান?",
-      clearFailed: "সব ছবি সরানো যায়নি।",
-      removeAll: "সব ছবি সরান",
-      clearAll: "সব মুছুন",
-      view: (label) => `${label} দেখুন`,
-      replace: "ছবি পরিবর্তন করুন",
-      delete: "ছবি মুছুন",
-    },
-  }[language] || galleryText.english;
+  const galleryText =
+    {
+      english: {
+        maxImages: (count) => `Maximum limit is ${count} images total.`,
+        imageOnly: "Please select image files only.",
+        imageFile: "Please select an image file.",
+        replaceFailed: "Failed to replace image.",
+        removeConfirm: "Are you sure you want to remove this image?",
+        removeFailed: "Failed to remove image.",
+        clearConfirm: "Are you sure you want to remove all images?",
+        clearFailed: "Failed to clear all images.",
+        removeAll: "Remove all images",
+        clearAll: "Clear All",
+        view: (label) => `View ${label}`,
+        replace: "Replace image",
+        delete: "Delete image",
+      },
+      hindi: {
+        maxImages: (count) => `कुल अधिकतम ${count} तस्वीरें हो सकती हैं।`,
+        imageOnly: "कृपया केवल तस्वीर फ़ाइलें चुनें।",
+        imageFile: "कृपया एक तस्वीर फ़ाइल चुनें।",
+        replaceFailed: "तस्वीर बदलना विफल रहा।",
+        removeConfirm: "क्या आप वाकई इस तस्वीर को हटाना चाहते हैं?",
+        removeFailed: "तस्वीर हटाना विफल रहा।",
+        clearConfirm: "क्या आप वाकई सभी तस्वीरें हटाना चाहते हैं?",
+        clearFailed: "सभी तस्वीरें हटाना विफल रहा।",
+        removeAll: "सभी तस्वीरें हटाएं",
+        clearAll: "सभी साफ़ करें",
+        view: (label) => `${label} देखें`,
+        replace: "तस्वीर बदलें",
+        delete: "तस्वीर हटाएं",
+      },
+      bengali: {
+        maxImages: (count) => `সর্বোচ্চ মোট ${count}টি ছবি হতে পারে।`,
+        imageOnly: "অনুগ্রহ করে শুধুমাত্র ছবির ফাইল নির্বাচন করুন।",
+        imageFile: "অনুগ্রহ করে একটি ছবির ফাইল নির্বাচন করুন।",
+        replaceFailed: "ছবি পরিবর্তন করা যায়নি।",
+        removeConfirm: "আপনি কি নিশ্চিত যে এই ছবিটি সরাতে চান?",
+        removeFailed: "ছবি সরানো যায়নি।",
+        clearConfirm: "আপনি কি নিশ্চিত যে সব ছবি সরাতে চান?",
+        clearFailed: "সব ছবি সরানো যায়নি।",
+        removeAll: "সব ছবি সরান",
+        clearAll: "সব মুছুন",
+        view: (label) => `${label} দেখুন`,
+        replace: "ছবি পরিবর্তন করুন",
+        delete: "ছবি মুছুন",
+      },
+    }[language] || galleryText.english;
   const addInputRef = useRef(null);
   const replaceInputRef = useRef(null);
 
@@ -524,9 +525,7 @@ const BusinessImageGallery = ({
 
     try {
       if (imageUrls.length + files.length > MAX_IMAGES_PER_UPLOAD) {
-        throw new Error(
-          galleryText.maxImages(MAX_IMAGES_PER_UPLOAD),
-        );
+        throw new Error(galleryText.maxImages(MAX_IMAGES_PER_UPLOAD));
       }
 
       if (files.some((file) => !file.type.startsWith("image/"))) {

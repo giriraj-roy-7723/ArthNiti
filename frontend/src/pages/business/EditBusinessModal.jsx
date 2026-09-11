@@ -276,11 +276,15 @@ const EditBusinessModal = ({
           businessForm.longitude !== "" ? Number(businessForm.longitude) : null,
       };
 
-      const response = await api.patch(`/businesses/${business.id}/update`, payload, {
-        headers: {
-          "Accept-Language": language || "en",
+      const response = await api.patch(
+        `/businesses/${business.id}/update`,
+        payload,
+        {
+          headers: {
+            "Accept-Language": language || "en",
+          },
         },
-      });
+      );
 
       handleClose();
       await onSuccess(response.data);
